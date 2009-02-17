@@ -5,10 +5,6 @@
 #include <windows.h>
 #include <string>
 
-class ResourceContext;
-typedef boost::shared_ptr <ResourceContext> ResourceContextRef;
-
-
 class IconTextElement : public ODR {
 public:
     virtual int getWidth() const;
@@ -17,12 +13,7 @@ public:
 
     virtual void draw(HDC hdc, RECT &rt) const;
 
-    virtual void createContextMenu(HMENU) const;
-    virtual void onCommand(int cmdId, ResourceContextRef rc);
     //virtual void eventOk()=0;
-    typedef boost::shared_ptr <IconTextElement> ref;
-
-
 protected:
     enum {
         ICON_SPACING=4
@@ -38,12 +29,11 @@ protected:
 
 class IconTextElementContainer : public IconTextElement {
 public:
-    IconTextElementContainer(const std::wstring &wstr, int icon);
+    IconTextElementContainer(std::wstring &wstr, int icon);
     virtual int getColor() const;
     virtual const wchar_t * getText() const;
     virtual int getIconIndex() const;
-protected:
-    IconTextElementContainer(){};
+private:
     std::wstring wstr;
     int iconIndex;
 };

@@ -2,7 +2,6 @@
 rem This script generates version.rc and sets env variables REVN and REVDATE
 
 SET VERSION=0.0.5
-SET OF_VER=434
 
 SET VPATH=vs2005\ui\version.rc
 
@@ -16,5 +15,5 @@ sed s/[\/,:]/-/g tmp\2>tmp\2.bat
 
 call tmp\2.bat
 
-echo IDS_VERSION  "%VERSION%.%OF_VER%.%REVN% UFO!" >%VPATH%
+echo IDS_VERSION  "%VERSION%.%REVN%" >%VPATH%
 echo IDS_REVDATE  "%REVDATE%" >>%VPATH%   

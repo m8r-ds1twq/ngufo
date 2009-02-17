@@ -19,8 +19,6 @@ public:
 	const std::string & getJid(void) const {return jid.getJid(); };
 	const std::string & getBareJid(void) const {return jid.getBareJid(); };
 
-    const std::string & getNickname(void) const {return jid.getUserName(); /*stub*/}
-
 	void setUserName(const std::string &userName) { jid.setUserName(userName); };
 	void setServer(const std::string &server){ jid.setServer(server); };
 	void setResource(const std::string &resource){ jid.setResource(resource); };
@@ -29,15 +27,18 @@ public:
 
     void saveAccount(LPCTSTR fileName);
 
-    void serialize(Serialize &s);
+    void serialize(Serialize &s, bool read);
 
 private:
 	Jid jid;
+
+    int version;
+
 public:
 
 	std::string password;
 
-    bool useSRV;
+    //bool useSRV;
 	std::string hostNameIp;
 	int port;
 
@@ -49,8 +50,6 @@ public:
 	bool useCompression;
 	bool useProxy;
 	std::string proxy;
-
-    bool networkUp;
 
 private:
     void init();

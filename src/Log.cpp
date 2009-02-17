@@ -1,39 +1,56 @@
 #include "Log.h"
-
-#include "utf8.hpp"
-
-Log::~Log(){}
-
-void Log::addLog(const wchar_t * msg) {}
-
-void Log::msg(const std::string &message){
-    addLog(utf8::utf8_wchar(message).c_str());
+Log::Log(){
 }
 
-void Log::msg(const wchar_t * message){
-    addLog(message);
+Log::~Log(){
+}
+
+wchar_t buf[256];
+
+const wchar_t * charToWchar(const char * src, const char *src2 = NULL) {
+    wchar_t *b=buf;
+
+    int i;
+    for (i=0; i<255; i++) {
+        if (*src ==0 ) break;
+        *(b++)=*(src++);
+    }
+
+    //*(b++)=0x20;
+    if (src2!=0)
+        for (; i<255; i++) {
+            if (*src2 ==0 ) break;
+            *(b++)=*(src2++);
+        }
+        *b=0;
+
+        return buf;
+}
+
+
+void Log::addLog(const wchar_t * msg) {
+    //ListBox_AddString( logWnd->getListBoxHWnd(), msg);
+    ODRRef r=ODRRef(new IconTextElementContainer(std::wstring(msg), -1));
+    odrLog->addODR(r, true);
+}
+
+void Log::msg(const std::string &message){
+    addLog(charToWchar(message.c_str()));
 }
 
 void Log::msg(const char * message){
-    msg(std::string(message));
+    addLog(charToWchar(message));
 }
 
 void Log::msg(const char * message, const char *message2){
-    std::string buf(message);
-    buf+=" ";
-    buf+=message2;
-    msg(buf);
+    addLog(charToWchar(message, message2));
 }
 
 Log::ref instance;
 
 Log::ref Log::getInstance() {
-    if (!instance) 
-        setInstance(new Log());
-
+    if (!instance) { 
+        instance=Log::ref(new Log());
+    }
     return instance;
-}
-
-void Log::setInstance( Log * log ) {
-    instance=Log::ref(log);
 }

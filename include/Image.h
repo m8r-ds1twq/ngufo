@@ -1,7 +1,7 @@
 #pragma once
 
 #include <windows.h>
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 #include <string>
 #include <vector>
 
@@ -12,7 +12,6 @@ public:
 
     virtual void drawImage(HDC hdc, int x, int y) const;
     HBITMAP getHBmp() {return bmp; }
-
 protected:
     HBITMAP bmp;
     //HBITMAP mask;
@@ -80,9 +79,6 @@ enum IconDef {
     ICON_COLLAPSED_INDEX = 0x24,
 
     ICON_VCARD=0x25,
-    ICON_DISCO_BACK=0x26,
-
-    ICON_DELIVERED_INDEX=0x27,
     //ICON_MESSAGE_BUTTONS = 0x25,
 
     ICON_PROFILE_INDEX = 0x30,

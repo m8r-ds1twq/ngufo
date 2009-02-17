@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Socket.h"
-#include "boostheaders.h"
+#include <boost/smart_ptr.hpp>
 #include <map>
 #include <stack>
 
 #include "basetypes.h"
 #include "ResourceContext.h"
+#include "Socket.h"
 #include "JabberDataBlock.h"
 #include "JabberListener.h"
 #include "JabberStanzaDispatcher.h"
@@ -25,7 +25,6 @@ public:
 	void sendXmlVersion(void);
 	void sendXmppBeginHeader();
 	void sendXmppEndHeader(void);
-    void parseStream();
 
 	virtual void tagStart(const std::string & tagname, const StringMap &attr);
 	virtual bool tagEnd(const std::string & tagname);

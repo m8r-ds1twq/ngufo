@@ -80,7 +80,6 @@ public:
     RosterGroup::ref findGroup(const std::string &name);
     RosterGroup::ref createGroup(const std::string &name, RosterGroup::Type type);
 
-    bool needUpdateView;
     void makeViewList();
 
     virtual const char * getType() const{ return NULL; /* result/set */ }
@@ -95,9 +94,7 @@ public:
     void addContact(Contact::ref contact);
     void deleteContact(Contact::ref contact);
     void setStatusByFilter(const std::string & bareJid, int status);
-    void setAllOffline();
     Roster::ContactListRef getHotContacts();
-    Roster::ContactListRef getGroupContacts(RosterGroup::ref group);
 
     void rosterSet(const char * nick, const char *jid, const char *group, const char *subscr );
     typedef boost::shared_ptr<Roster> ref;
@@ -108,47 +105,23 @@ private:
 
 };
 
-class RosterView : public Wnd{
+
+class RosterView: public VirtualListView {
 public:
-    //ChatView(HWND parent, const std::string & title);
-    RosterView(HWND parent);
+    RosterView(HWND parent, const std::string & title);
     virtual ~RosterView();
-
-    static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-    typedef boost::shared_ptr<RosterView> ref;
-
-    virtual bool showWindow(bool show);
-
-    void redraw();
-
-protected:
-    VirtualListView::ref rosterListView;
-
-private:
-    static ATOM windowClass;
-    void calcEditHeight();
-    ATOM RegisterWindowClass();
-};
-
-class RosterListView: public VirtualListView {
-public:
-    RosterListView(HWND parent, const std::string & title);
-    virtual ~RosterListView();
 
     virtual void eventOk();
     boost::weak_ptr<Roster> roster;
 
-    typedef boost::shared_ptr<RosterListView> ref;
+    typedef boost::shared_ptr<RosterView> ref;
 
     virtual HMENU getContextMenu();
     virtual void OnCommand(int cmdId, LONG lParam);
 
-    virtual bool showWindow(bool show);
+    virtual void showWindow(bool show);
 
     void setIcon(int iconIndex);
-
-    void openChat(Contact::ref contact);
 
     enum actions {
         OPENCHAT=50000,
@@ -159,10 +132,7 @@ public:
         RENAMEGRP, SUBSCRIBE, SUBSCRIBED, UNSUBSCRIBED,
         MUCKICK, MUCBAN, 
         MUCVISITOR, MUCPARTICIPANT, MUCMODERATOR,
-        MUCNONE, MUCMEMBER, MUCADMIN, MUCOWNER,
-        MUCCONFIG, MLOUTCASTS, MLMEMBERS, MLADMINS, MLOWNERS,
-        MUC_REENTER, MUC_LEAVE,
-        SSH_DEFAULT, SSH_ENABLED, SSH_DISABLED
+        MUCNONE, MUCMEMBER, MUCADMIN, MUCOWNER
     };
 private:
 };

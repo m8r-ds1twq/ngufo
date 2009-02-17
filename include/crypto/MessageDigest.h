@@ -100,7 +100,7 @@ public:
     /**
      * Add specific bytes to the digest.
      */
-    virtual void updateArray(const unsigned char* input, int len, int offset=0);
+    void updateArray(const unsigned char* input, int len, int offset=0);
 
     /**
      * Add the bytes in the String 'input' to the current digest.
@@ -119,7 +119,6 @@ public:
     const unsigned char * getDigestBits() const;
     
     const std::string getDigestHex() const;
-    const std::string getDigestBase64() const;
 
 
 };

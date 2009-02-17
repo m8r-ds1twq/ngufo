@@ -4,8 +4,7 @@
 #include "Contact.h"
 #include "utf8.hpp"
 #include "Image.h"
-#include "TimeFunc.h"
-#include "stringutils.h"
+
 //////////////////////////////////////////////////////////////////////////
 extern ImgListRef skin;
 
@@ -27,15 +26,10 @@ Contact::Contact(const std::string &jid, const std::string &resource, const std:
     this->status=presence::OFFLINE;
     offlineIcon=presence::OFFLINE;
 
-    enableServerHistory=DISABLED_STATE;
-
     nUnread=0;
     sortKey=0;
 
     transpIndex=identifyTransport(jid);
-
-    composing=false;
-    acceptComposing=false;
 
     update();
     messageList=ODRListRef(new ODRList);
@@ -46,7 +40,6 @@ Contact::ref Contact::clone() {
     c->subscr=subscr;
     c->group=group;
     c->offlineIcon=offlineIcon;
-    c->enableServerHistory=enableServerHistory;
     return c;
 }
 
@@ -62,8 +55,7 @@ Contact::ref Contact::clone() {
 }*/
 
 int Contact::getColor() const{ return 0; }
-int Contact::getIconIndex() const{
-    if (composing) return icons::ICON_COMPOSING_INDEX;
+int Contact::getIconIndex() const{ 
     if (nUnread>0) return icons::ICON_MESSAGE_INDEX;
     int icon=(status==presence::OFFLINE)? offlineIcon: status;
     if (icon<=presence::UNKNOWN) return icon+transpIndex; 
@@ -75,13 +67,8 @@ const std::string Contact::getFullName() const{
     if (nickname.length()==0) return rosterJid;
     return nickname+" <"+rosterJid+">";
 }
-
-const std::string Contact::getName() const{
-    if (nickname.length()==0) return rosterJid;
-    return nickname;
-}
 //////////////////////////////////////////////////////////////////////////
-bool Contact::compareKST( Contact::ref left, Contact::ref right ) {
+bool Contact::compare( Contact::ref left, Contact::ref right ) {
     Contact *l=left.get();
     Contact *r=right.get();
     if (l->sortKey < r->sortKey) return true;
@@ -90,15 +77,6 @@ bool Contact::compareKST( Contact::ref left, Contact::ref right ) {
     if (l->status > r->status) return false;
     return (_wcsicmp(left->getText(), right->getText()) < 0);
 }
-//////////////////////////////////////////////////////////////////////////
-bool Contact::compareKT( Contact::ref left, Contact::ref right ) {
-    Contact *l=left.get();
-    Contact *r=right.get();
-    if (l->sortKey < r->sortKey) return true;
-    if (l->sortKey > r->sortKey) return false;
-    return (_wcsicmp(left->getText(), right->getText()) < 0);
-}
-
 void Contact::update() {
     std::string s=(nickname.empty())? jid.getBareJid():nickname;
     std::string resource=jid.getResource();
@@ -106,17 +84,6 @@ void Contact::update() {
     wjid=utf8::utf8_wchar( s );
     init();
 }
-
-void Contact::messageDelivered(const std::string & id){
-    for (size_t index=0; index<messageList->size(); index++) {
-        Message::ref msg=boost::dynamic_pointer_cast<Message>(messageList->operator [](index));
-        if (!msg) continue;
-        if (msg->type!=Message::SENT) continue;
-        if (id!=msg->id) continue;
-        msg->delivered=true;
-    }    
-}
-
 
 void Contact::processPresence( JabberDataBlockRef block ) {
 
@@ -161,37 +128,18 @@ void Contact::processPresence( JabberDataBlockRef block ) {
 
     this->status=typeIndex;
     if (type2!=presence::NOCHANGE) this->offlineIcon=type2;
-
-    if (nickname.empty() && this->status<=presence::DND) {
-        JabberDataBlockRef nick=block->findChildNamespace("nick","http://jabber.org/protocol/nick");
-        if (nick) {
-            nickname=nick->getText();
-            std::trim(nickname);
-        }
-    }
-
     update();
 
     std::string body=type;
-    if (status.length()) {
-        body+=" (";
-        body+=status;
-        body+=')';
-    }
-    if (priority.length()) {
-        body+=" [";
-        //std::strAppendInt(body, priority);
-        body+=priority;
-        body+=']';
-    }
+    body+=" (";
+    body+=status;
+    body+=") [#]";
 
-    Message::ref msg=Message::ref(new Message(body, block->getAttribute("from"), false, msgType, Message::extractXDelay(block) ));
+    Message::ref msg=Message::ref(new Message(body, block->getAttribute("from"), msgType));
 
-    if (messageList->size()==1) {
-        //verify if it is presence;
-        Message::ref mfirst=boost::dynamic_pointer_cast<Message>(messageList->front());
-        if (mfirst) if (mfirst->type==Message::PRESENCE)
-            this->messageList->erase( this->messageList->begin());
+    if (this->messageList->size()==1) {
+        //TODO: verify if it is presence;
+        this->messageList->erase( this->messageList->begin());
     }
     this->messageList->push_back(msg);
 }

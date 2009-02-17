@@ -11,13 +11,7 @@ typedef std::vector<ODRRef> ODRList;
 typedef boost::shared_ptr<ODRList> ODRListRef;
 
 //////////////////////////////////////////////////////////////////////////
-class VirtualListElement {
-public:
-    typedef boost::shared_ptr<VirtualListElement> ref;
-    virtual HMENU getContextMenu(HMENU menu){ return menu; }
-    virtual bool OnMenuCommand(int cmdId, HWND parent) { return false; }
-};
-//////////////////////////////////////////////////////////////////////////
+
 
 class VirtualListView : public Wnd {
 public:
@@ -29,7 +23,6 @@ public:
     virtual const ODR * getODR() const;
 
     void bindODRList(ODRListRef odr) {  odrlist=odr; }
-    ODRListRef getODRList() { return odrlist; }
 
     void notifyListUpdate( bool redraw);
 
@@ -40,18 +33,15 @@ public:
     virtual HMENU getContextMenu();
     virtual void OnCommand(int cmdId, LONG lParam);
 
-    ODRRef getCursorPos() { return cursorPos; }
-    void setCursorPos(ODRRef newPos);
     bool moveCursorEnd();
-    bool cursorAtEnd();
+
 
     typedef boost::shared_ptr<VirtualListView> ref;
+
 
     bool wrapList;
     // enable different background colors for odd and even list elements
     bool colorInterleaving;
-
-	HWND EDIT_Control;
 
 protected:
 
@@ -73,7 +63,7 @@ private:
         SCROLLWIDTH=14
     };
 
-    ODRRef moveCursorTo(int x, int y);
+    bool moveCursorTo(int x, int y);
     void moveCursor(int direction);
     void cursorFit();
 

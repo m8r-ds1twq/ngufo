@@ -1,6 +1,8 @@
 // ui.cpp : Defines the entry point for the application.
 //
 
+//#define JIVESOFTWARE
+
 //#include "stdafx.h"
 
 #include "ui.h"
@@ -9,10 +11,9 @@
 #include <windowsx.h>
 #include <aygshell.h>
 
-#include "wmuser.h"
 #include "Notify.h"
 
-#include "LogPanel.h"
+#include "Log.h"
 #include "Socket.h"
 #include "CETLSSocket.h"
 #include <string>
@@ -22,28 +23,21 @@
 #include "JabberListener.h"
 #include "JabberDataBlockListener.h"
 #include "ResourceContext.h"
-#include "HostFeatures.h"
 
 #include "EntityCaps.h"
 #include "Roster.h"
 
 #include "ProcessMUC.h"
-#include "MucBookmarks.h"
 
-#include "Captcha.h"
-
-#include "DlgAbout.h"
 #include "DlgAccount.h"
-#include "DlgConfig.h"
 #include "DlgStatus.h"
 #include "DlgMucJoin.h"
 #include "VirtualListView.h"
 #include "ChatView.h"
 #include "TabCtrl.h"
-#include "XDataForm.h"
+#include "HtmlView.h"
 #include "VcardForm.h"
 #include "ServiceDiscovery.h"
-#include "LastActivity.h"
 
 #include "Auth.h"
 
@@ -51,14 +45,8 @@
 
 #include "Image.h"
 #include "Smiles.h"
-#include "History.h"
 
 #include "utf8.hpp"
-
-#include "config.h"
-
-#include "dnsquery.h"
-#include "boostheaders.h"
 
 #define MAX_LOADSTRING 100
 
@@ -66,14 +54,14 @@
 HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 HWND		mainWnd;
-HCURSOR     cursorWait;
 
 //ListViewRef logWnd;
 TabsCtrlRef tabs;
 
 VirtualListView::ref odrLog;
-RosterListView::ref rosterWnd;
+RosterView::ref rosterWnd;
 ResourceContextRef rc;
+HtmlView::ref htmlWnd;
 
 ImgListRef skin;
 
@@ -82,20 +70,19 @@ SmileParser *smileParser;
 std::wstring appRootPath;
 std::wstring skinRootPath;
 std::string appVersion;
-std::string appName;
 
 int tabHeight;
 
 int prepareAccount();
-int initJabber(ResourceContextRef rc);
-//void streamShutdown();
-void streamShutdown(ResourceContextRef rc);
+int initJabber();
+void streamShutdown();
 void Shell_NotifyIcon(bool show, HWND hwnd);
 
 // Forward declarations of functions included in this code module:
 ATOM			MyRegisterClass(HINSTANCE, LPTSTR);
 BOOL			InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
@@ -109,24 +96,18 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	{
 		return FALSE;
 	}
+
 	HACCEL hAccelTable;
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_UI));
 
 	// Main message loop:
-    //while (GetMessage(&msg, NULL, 0, 0)) {
-	while (true) {
-        if (rc) if (rc->jabberStream) rc->jabberStream->parseStream();
-
-        if (!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {  Sleep(50); continue; }
-        if (msg.message==WM_QUIT) break;
+	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 		}
-
 	}
     Shell_NotifyIcon(false, NULL);
-    Config::getInstance()->save();
 	return (int) msg.wParam;
 }
 
@@ -165,8 +146,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance, LPTSTR szWindowClass)
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
-const std::string responseMd5Digest( const std::string &user, const std::string &pass, const std::string &realm, const std::string &digestUri, const std::string &nonce, const std::string cnonce);
-
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
     HWND hWnd;
@@ -211,7 +190,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     LoadString(g_hInst, IDS_VERSION, wbuf, sizeof(wbuf));
     appVersion=utf8::wchar_utf8(wbuf);
-    appName="Bombus-ng";
 
     if (!MyRegisterClass(hInstance, szWindowClass)) 	return FALSE;
 
@@ -243,12 +221,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     Shell_NotifyIcon(true, hWnd);
     prepareAccount();
-
-    if (Config::getInstance()->connectOnStartup) {
-        rc->status=presence::ONLINE;
-        initJabber(rc);
-    }
-
 
     return TRUE;
 }
@@ -283,20 +255,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Parse the menu selections:
             switch (wmId) {
                 case IDM_HELP_ABOUT: {
-                    DlgAbout(g_hInst, hWnd);
+					DialogBox(g_hInst, (LPCTSTR)IDD_ABOUTBOX, hWnd, About);
 				    break;
                 }
-
-                case ID_JABBER_OPTIONS:
-                    DialogConfigMP(g_hInst, hWnd);
-                    rc->myCaps=MyCapsRef(new MyCaps());
-                    if (!rc->isLoggedIn()) break;
-                    rc->roster->makeViewList();
-                    break;
-
-                case IDM_JABBER_ACCOUNT:
-                    DialogAccountMP(g_hInst, hWnd, rc->account);
-                    break;
+				case IDM_JABBER_ACCOUNT:
+					DialogAccount(g_hInst, hWnd, rc->account);
+					break;
                 case IDM_EXIT:
                     SendMessage (hWnd, WM_CLOSE, 0, 0);				
                     break;
@@ -305,48 +269,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     DlgStatus::createDialog(hWnd, rc);
                     break;
 
-				/* Смена статуса на нижней панели */
-				/* теперь под пункт главного меню... */
-				/* пока не придумал как оптиизировать :( */
-				
-				case IDM_STATUS_ONLINE:
-					rc->status=presence::ONLINE;
-					rosterWnd->setIcon(rc->status);
-					rc->sendPresence();
-					initJabber(rc);
-					break;
-				case IDM_STATUS_FFC:					
-					rc->status=presence::CHAT;
-					rosterWnd->setIcon(rc->status);
-					rc->sendPresence();
-					initJabber(rc);
-					break;
-				case IDM_STATUS_AWAY:					
-					rc->status=presence::AWAY;
-					rosterWnd->setIcon(rc->status);
-					rc->sendPresence();
-					initJabber(rc);
-					break;
-				case IDM_STATUS_EXTENDEDAWAY:					
-					rc->status=presence::XA;
-					rosterWnd->setIcon(rc->status);
-					rc->sendPresence();
-					initJabber(rc);
-					break;
-				case IDM_STATUS_DND:					
-					rc->status=presence::DND;
-					rosterWnd->setIcon(rc->status);
-					rc->sendPresence();
-					initJabber(rc);
-					break;
-				case IDM_STATUS_OFFLINE:
-					rc->status=presence::OFFLINE;
-					rc->sendPresence();
-					streamShutdown(rc);
-					rosterWnd->setIcon(rc->status);
-					break;
-				/* !КОНЕЦ! статусов */ 
-			
 				/*case IDM_JABBER_ONLINE:
 					initJabber();
 					break;
@@ -357,7 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 case ID_JABBER_JOINCONFERENCE:
                     if (rc->isLoggedIn())
-                        DlgMucJoin::createDialog(hWnd, rc, "kpk@conference.jabber.ru");
+                        DlgMucJoin::createDialog(hWnd, rc);
                     break;
 
                 case ID_TOOLS_MYVCARD:
@@ -370,7 +292,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 case ID_TOOLS_SERVICEDISCOVERY:
                     {
-                        ServiceDiscovery::ref disco=ServiceDiscovery::createServiceDiscovery(tabs->getHWnd(), rc, rc->account->getServer() , "", false);
+                        ServiceDiscovery::ref disco=ServiceDiscovery::createServiceDiscovery(tabs->getHWnd(), rc, std::string("jabber.ru"));
                         tabs->addWindow(disco);
                         tabs->switchByWndRef(disco);
                     }
@@ -388,11 +310,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         tabs->switchByWndRef(odrLog);
                     }
                     break;
-				/*case IDM_WINDOWS_ROSTER:
+
+
+				case IDM_WINDOWS_ROSTER:
                     tabs->switchByWndRef(rosterWnd);
-					break;*/
-                case IDS_WINDOWS:
-                    SendMessage(tabs->getHWnd(), WM_COMMAND, IDS_WINDOWS, 0);
+					break;
 
                 default:
                     if (tabs) tabs->fwdWMCommand(wmId);
@@ -407,9 +329,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             mbi.hwndParent = hWnd;
             mbi.nToolBarId = IDR_MENU;
             mbi.hInstRes   = g_hInst;
-            mbi.dwFlags = SHCMBF_HMENU;
 
-            cursorWait=LoadCursor(NULL, IDC_WAIT);
             //skin=ImgListRef(new ImgArray(TEXT("skin.png"), 8, 6));
             skin=ImgListRef(new Skin(TEXT("")));
 
@@ -420,27 +340,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             tabs=TabsCtrlRef(new MainTabs(hWnd));
             //tabs->setParent(hWnd);
 
-            rosterWnd=RosterListView::ref(new RosterListView(tabs->getHWnd(), std::string("Roster")));
+            rosterWnd=RosterView::ref(new RosterView(tabs->getHWnd(), std::string("Roster")));
             tabs->addWindow(rosterWnd);
-			SetFocus(rosterWnd->getHWnd()); //чтоб стрелки сразу после запуска работали, без этого непонятно где фокус
 
-			// не уверен что актуально тут ведь ростер мгновенно не грузится надо бы сделать после Roster Arrived 
-			//SendMessage(int.Parse(g), WM_KEYDOWN, VK_A, 0); //для того чтобы не пугать пользователей отсутсвием выделения пошлем нажатие кнопки вниз :)
+            //chatSample=ChatView::ref(new ChatView(tabs->getHWnd(), Contact::ref(new Contact("test@server","resource",""))));
+            //tabs->addWindow(chatSample);
 
             { 
                 odrLog = VirtualListView::ref(new VirtualListView(tabs->getHWnd(), std::string("Log")));
-				if (Config::getInstance()->autoLOG) tabs->addWindow(odrLog);
-                LogPanel::bindLV(odrLog); 
-				//Log::getInstance()->msg((wchar_t*)"YES привет!");
+                tabs->addWindow(odrLog);
+                Log::getInstance()->bindLV(odrLog); 
             }
 
-            /*#ifdef DEBUG
-            {
-                XDataForm::ref testXdata=XDataForm::createXDataForm(tabs->getHWnd(), "", rc);
-                tabs->addWindow(testXdata);
-                testXdata->formTest();
-            }
-            #endif*/
+            /*htmlWnd=HtmlView::ref(new HtmlView(tabs->getHWnd(), std::string("html test")));
+            tabs->addWindow(htmlWnd);*/
 
 			//listWnd=logWnd;
 			//dropdownWnd=DoCreateComboControl(hWnd);
@@ -457,7 +370,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // Initialize the shell activate info structure
             memset(&s_sai, 0, sizeof (s_sai));
             s_sai.cbSize = sizeof (s_sai);
-
             break;
         case WM_PAINT:
             hdc = BeginPaint(hWnd, &ps);
@@ -516,10 +428,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}*/
 
-        case SHELLNOTIFYICON:
+        case WM_USER:
             SetForegroundWindow((HWND)((ULONG) hWnd | 0x00000001));            
             break;
-        case WM_FORWARD_STANZA:
+        case WM_USER+2:
             {
                 JabberDataBlockRef *rf=(JabberDataBlockRef *)lParam; //АХТУНГ
                 if (rf==NULL) break; 
@@ -532,6 +444,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+// Message handler for about box.
+INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+        case WM_INITDIALOG:
+            {
+                // Create a Done button and size it.  
+                SHINITDLGINFO shidi;
+                shidi.dwMask = SHIDIM_FLAGS;
+                shidi.dwFlags = SHIDIF_DONEBUTTON | SHIDIF_SIPDOWN | SHIDIF_SIZEDLGFULLSCREEN | SHIDIF_EMPTYMENU;
+                shidi.hDlg = hDlg;
+                SHInitDialog(&shidi);
+
+                wchar_t buf[256];
+                LoadString(g_hInst, IDS_VERSION, buf, 256);
+                SetDlgItemText(hDlg, IDC_AVERSION, buf);
+                //SetDlgItemText(hDlg, IDC_AVERSION, MAKEINTRESOURCE(IDS_VERSION));
+            }
+            return (INT_PTR)TRUE;
+
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDOK)
+            {
+                EndDialog(hDlg, LOWORD(wParam));
+                return TRUE;
+            }
+            break;
+
+        case WM_CLOSE:
+            EndDialog(hDlg, message);
+            return TRUE;
+
+/*#ifdef _DEVICE_RESOLUTION_AWARE
+        case WM_SIZE:
+            {
+		DRA::RelayoutDialog(
+			g_hInst, 
+			hDlg, 
+			DRA::GetDisplayMode() != DRA::Portrait ? MAKEINTRESOURCE(IDD_ABOUTBOX_WIDE) : MAKEINTRESOURCE(IDD_ABOUTBOX));
+            }
+            break;
+#endif*/
+    }
+    return (INT_PTR)FALSE;
+}
 
 //////////////////////////////////////////////////////////////////////////
 /*class MTForwarder: public JabberDataBlockListener {
@@ -546,7 +504,7 @@ public:
 ProcessResult MTForwarder::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc) {
     JabberDataBlockRef *p=new JabberDataBlockRef(block); //АХТУНГ
     //rc->jabberStanzaDispatcher2->dispatchDataBlock(block);
-    PostMessage(mainWnd, WM_FORWARD_STANZA, 0, (LPARAM)p);
+    PostMessage(mainWnd, WM_USER+2, 0, (LPARAM)p);
 
     return BLOCK_PROCESSED;
 }*/
@@ -581,21 +539,21 @@ ProcessResult GetRoster::blockArrived(JabberDataBlockRef block, const ResourceCo
 class Version : public JabberDataBlockListener {
 public:
     Version() {}
-    ~Version(){};
-    virtual const char * getType() const{ return "get"; }
-    virtual const char * getId() const{ return NULL; }
-    virtual const char * getTagName() const { return "iq"; }
-    virtual ProcessResult blockArrived(JabberDataBlockRef block, const ResourceContextRef rc);
+	~Version(){};
+	virtual const char * getType() const{ return "get"; }
+	virtual const char * getId() const{ return NULL; }
+	virtual const char * getTagName() const { return "iq"; }
+	virtual ProcessResult blockArrived(JabberDataBlockRef block, const ResourceContextRef rc);
 };
 ProcessResult Version::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
-
+    
     JabberDataBlockRef query=block->getChildByName("query");
     if (!query) return BLOCK_REJECTED;
     if (query->getAttribute("xmlns")!="jabber:iq:version") return BLOCK_REJECTED;
-
+    
     Log::getInstance()->msg("version request ", block->getAttribute("from").c_str());
 
-    std::string version=sysinfo::getOsVersion();
+    std::string version=utf8::wchar_utf8(sysinfo::getOsVersion());
 
 
     JabberDataBlock result("iq");
@@ -604,84 +562,12 @@ ProcessResult Version::blockArrived(JabberDataBlockRef block, const ResourceCont
     result.setAttribute("id", block->getAttribute("id"));
     result.addChild(query);
 
-    query->addChild("name",::appName.c_str());
+	query->addChild("name","Bombus-ng");
     query->addChild("version",::appVersion.c_str());
-    query->addChild("os",version.c_str());
+	query->addChild("os",version.c_str());
 
-    rc->jabberStream->sendStanza(result);
-    return BLOCK_PROCESSED;
-}
-//////////////////////////////////////////////////////////////
-class Ping : public JabberDataBlockListener {
-public:
-    Ping() {}
-    ~Ping(){};
-    virtual const char * getType() const{ return "get"; }
-    virtual const char * getId() const{ return NULL; }
-    virtual const char * getTagName() const { return "iq"; }
-    virtual ProcessResult blockArrived(JabberDataBlockRef block, const ResourceContextRef rc);
-};
-ProcessResult Ping::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
-
-    JabberDataBlockRef ping=block->findChildNamespace("ping","urn:xmpp:ping");
-    if (!ping) return BLOCK_REJECTED;
-
-    Log::getInstance()->msg("Ping from ", block->getAttribute("from").c_str());
-
-    JabberDataBlock pong("iq");
-    pong.setAttribute("to", block->getAttribute("from"));
-    pong.setAttribute("type", "result");
-    pong.setAttribute("id", block->getAttribute("id"));
-
-    rc->jabberStream->sendStanza(pong);
-    return BLOCK_PROCESSED;
-}
-//////////////////////////////////////////////////////////////
-class EntityTime : public JabberDataBlockListener {
-public:
-    EntityTime() {}
-    ~EntityTime(){};
-    virtual const char * getType() const{ return "get"; }
-    virtual const char * getId() const{ return NULL; }
-    virtual const char * getTagName() const { return "iq"; }
-    virtual ProcessResult blockArrived(JabberDataBlockRef block, const ResourceContextRef rc);
-};
-ProcessResult EntityTime::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
-
-    int rslt=BLOCK_REJECTED;
-    JabberDataBlockRef time=block->findChildNamespace("time","urn:xmpp:time"); 
-    if (time) {
-        //Log::getInstance()->msg("Time query: ", block->getAttribute("from").c_str());
-
-        PackedTime ct=strtime::getCurrentUtc();
-        time->addChild("utc",strtime::toXep0080Time(ct).c_str());
-        time->addChild("tzo",strtime::getLocalZoneOffset().c_str());
-        rslt=BLOCK_PROCESSED;
-    }
-
-    JabberDataBlockRef query=block->findChildNamespace("query","jabber:iq:time"); 
-	if (query) {
-		//Log::getInstance()->msg("Time query: ", block->getAttribute("from").c_str());
-
-		PackedTime ct=strtime::getCurrentUtc();
-		query->addChild("utc",strtime::toIso8601(ct).c_str());
-		query->addChild("display",strtime::toLocalDateTime(ct).c_str());
-		query->addChild("tz",strtime::getLocalZoneOffset().c_str());
-        rslt=BLOCK_PROCESSED;
-	}
-
-    if (rslt==BLOCK_REJECTED) return BLOCK_REJECTED;
-
-    JabberDataBlock result("iq");
-    result.setAttribute("to", block->getAttribute("from"));
-    result.setAttribute("type", "result");
-    result.setAttribute("id", block->getAttribute("id"));
-
-    if (time) result.addChild(time);
-    if (query) result.addChild(query);
-    
-    rc->jabberStream->sendStanza(result);
-    return BLOCK_PROCESSED;
+	rc->jabberStream->sendStanza(result);
+	return BLOCK_PROCESSED;
 }
 //////////////////////////////////////////////////////////////
 class MessageRecv : public JabberDataBlockListener {
@@ -695,33 +581,10 @@ public:
 };
 ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
     std::string from=block->getAttribute("from");
-    const std::string & id=block->getAttribute("id");
-    const std::string & body=block->getChildText("body");
-    const std::string & subj=block->getChildText("subject");
+    std::string body=block->getChildText("body");
 
-    //JabberDataBlockRef xfwd=block->findChildNamespace("x","jabber:x:forward");
-    //if (xfwd) {
-	//  //old method
-    //  std::string ofrom=xfwd->getChildText("from");
-    //}
-
-	std::string ofrom;
-	std::string oto;
-    // xep-0033 Extended stanza addressing
-    JabberDataBlockRef addresses=block->findChildNamespace("addresses", "http://jabber.org/protocol/address");
-    if (addresses && rc->myJid.getBareJid() == Jid(from).getBareJid() ) {
-        JabberDataBlockRefList::iterator i=addresses->getChilds()->begin();
-        while (i!=addresses->getChilds()->end()) {
-            JabberDataBlockRef addr=*(i++);
-            if (addr->getAttribute("type")=="ofrom") ofrom=addr->getAttribute("jid");
-            if (addr->getAttribute("type")=="oto")   oto=addr->getAttribute("jid");
-        }
-    }
-
-    if (ofrom.length()) from=ofrom;
     //StringRef orig=block->toXML();
-
-    std::string nick;
+	Log::getInstance()->msg("Message from ", from.c_str()); 
 
     bool mucMessage= block->getAttribute("type")=="groupchat";
     Contact::ref c;
@@ -735,111 +598,29 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
         if (!roomGrp) return BLOCK_PROCESSED;
         c=roomGrp->room;
 
-        nick=roomNode.getResource();
+        body=roomNode.getResource()+">"+body;
 
-    } else {
-        c=rc->roster->getContactEntry(from);
-        nick=c->getName();
-    }
+    } else c=rc->roster->getContactEntry(from);
 
-    //xep-085
-    if (block->findChildNamespace("active", "http://jabber.org/protocol/chatstates")) {
-        c->composing=false;
-        c->acceptComposing=true;
-    }
-    if (block->findChildNamespace("paused", "http://jabber.org/protocol/chatstates")) {
-        c->composing=false;
-        c->acceptComposing=true;
-    }
-    if (block->findChildNamespace("composing", "http://jabber.org/protocol/chatstates")) {
-        c->composing=true;
-        c->acceptComposing=true;
-    }
-    //end xep-0085
+    Message::ref msg=Message::ref(new Message(body, from, Message::INCOMING));
 
-    //xep-0184
-    if (Config::getInstance()->delivered) {
-        if (block->findChildNamespace("request","urn:xmpp:receipts")) {
-            // reply
-            JabberDataBlock delivered("message");
-            delivered.setAttribute("to", from);
-            delivered.setAttribute("id",id);
-            delivered.addChildNS("received","urn:xmpp:receipts");
-            rc->jabberStream->sendStanza(delivered);
-        }
+    std::wstring soundName(appRootPath);
+    soundName+=TEXT("sounds\\message.wav");
+    
+    Notify::PlayNotify();
+    
+    PlaySound(soundName.c_str(), NULL, SND_ASYNC | /*SND_NOWAIT |*/SND_FILENAME);
 
-        if (block->findChildNamespace("received","urn:xmpp:receipts")) {
-            c->messageDelivered(id);
-        }
-    }
-    //end of xep-0184
-
-    //processing jabber:x:event - deprecated xep-0022
-    JabberDataBlockRef x=block->findChildNamespace("x","jabber:x:event");
-    if (x) {
-        std::string xid=x->getChildText("id");
-        //delivery notifications
-        if (x->getChildByName("delivered"))   if (Config::getInstance()->delivered) {
-            if (xid.empty()) {
-				/*if (boost::dynamic_pointer_cast<MucContact>c) {
-					if (c->status==presence.OFFLINE) return;
-				}*/
-                JabberDataBlock delivered("message");
-                delivered.setAttribute("to", from);
-                JabberDataBlockRef x=delivered.addChildNS("x", "jabber:x:event");
-                x->addChild("id", block->getAttribute("id").c_str() );
-                x->addChild("delivered", NULL);
-                rc->jabberStream->sendStanza(delivered);
-            } else {
-                c->messageDelivered(xid);
-            }
-        }
-        //composing events
-        bool composing = false;
-        if (x->getChildByName("composing")) {
-            c->acceptComposing=true;
-            composing=body.empty();
-        }
-        c->composing=composing;
-
-        if (composing) {
-            //todo: repaint
-        }
-    }
-    // end of xep-0022
-
-    Message::ref msg;
-
-    if (body.length() || subj.length() ) {
-        //constructing message and raising message event
-        Log::getInstance()->msg("Message from ", from.c_str()); 
-
-        msg=Message::ref(new Message(body, nick, mucMessage, Message::INCOMING, Message::extractXDelay(block) ));
-
-        Notify::PlayNotify();
-    }
+    c->nUnread++;
+    c->messageList->push_back(msg);
 
     ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(c).get());
-    bool ascroll=(cv==NULL)? false: cv->autoScroll();
-
-    if (msg) {
-        c->nUnread++;
-        c->messageList->push_back(msg);
-        if (!mucMessage) History::getInstance()->appendHistory(c, msg);
-
-        if (ascroll) /*if (cv)*/ {
-            cv->moveEnd();
-        }
-        //tabs->switchByODR(c); 
+    if(cv) {
+        cv->moveUnread();
+        cv->redraw();
     }
 
-    //repainting
-    if (rc->roster->needUpdateView) rc->roster->makeViewList();
-
-    if (cv) { 
-        if (IsWindowVisible(cv->getHWnd())) cv->redraw();
-        InvalidateRect(tabs->getHWnd(), NULL, FALSE);
-    }
+    //tabs->switchByODR(c); 
 
     InvalidateRect(rosterWnd->getHWnd(),NULL, FALSE);
 
@@ -860,18 +641,16 @@ ProcessResult PresenceRecv::blockArrived(JabberDataBlockRef block, const Resourc
     std::string from=block->getAttribute("from");
 
     Contact::ref contact=rc->roster->getContactEntry(from);
-    ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(contact).get());
-    bool ascroll=(cv==NULL)? false: cv->autoScroll();
-
     contact->processPresence(block);
 
     rc->roster->makeViewList();
 
 
-    if (ascroll) /*if(cv)*/ {
-        cv->moveEnd();
+    ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(contact).get());
+    if(cv) {
+        cv->moveUnread();
+        cv->redraw();
     }
-    if (cv) if (IsWindowVisible(cv->getHWnd())) cv->redraw();
 
     return BLOCK_PROCESSED;
 }
@@ -902,37 +681,27 @@ void JabberStreamEvents::beginConversation(JabberDataBlockRef streamHeader){
 void JabberStreamEvents::endConversation(const std::exception *ex){
     if (ex!=NULL)  Log::getInstance()->msg(ex->what());
     Log::getInstance()->msg("End Conversation");
-    rc->roster->setAllOffline();
-    rc->roster->makeViewList();
-    //tabs->
-
     rosterWnd->setIcon(presence::OFFLINE);
 }
 
 void JabberStreamEvents::loginSuccess(){
     Log::getInstance()->msg("Login ok");
 
-    HostFeatures::discoverFeatures(rc);
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new GetRoster() ));
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new ProcessMuc(rc) ));
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new PresenceRecv() ));
-    rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new CaptchaListener() ));
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new MessageRecv() ));
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new Version() ));
-    rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new Ping() ));
-    rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new LastActivity() ));
-    rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new EntityTime() ));
     rc->jabberStanzaDispatcherRT->addListener( JabberDataBlockListenerRef( new EntityCaps() ));
-    LastActivity::update();
 
     JabberDataBlock getRoster("iq");
     getRoster.setAttribute("type","get");
     getRoster.setAttribute("id","roster");
 
-    getRoster.addChildNS("query", "jabber:iq:roster");
+    JabberDataBlockRef qry =getRoster.addChild("query", NULL); 
+    qry->setAttribute("xmlns","jabber:iq:roster");
 
     rc->jabberStream->sendStanza(getRoster);
-    rc->bookmarks->doQueryBookmarks(rc);
 }
 
 void JabberStreamEvents::loginFailed(const char * errMsg){
@@ -942,63 +711,16 @@ void JabberStreamEvents::loginFailed(const char * errMsg){
 }
 
 bool JabberStreamEvents::connect(){
+    std::string host=(rc->account->hostNameIp.empty())?rc->account->getServer() : rc->account->hostNameIp;
 
-    Socket::initWinsocks();
-
-    if (rc->account->networkUp) {
-        Log::getInstance()->msg("Raising up network");
-        Socket::networkUp();
-//		Socket::checkNetworkUp
-    }
-
-    std::string host;
-    int port=5222;
-
-    if (rc->account->useSRV) {
-        Log::getInstance()->msg("Searching SRV for ", rc->account->getServer().c_str() );
-
-        dns::DnsSrvQuery d;
-        int retries=3;
-        do { 
-            if (d.doQuery( "_xmpp-client._tcp."+rc->account->getServer())) {
-                if (d.getCount()>0) {
-                    dns::SRVAnswer::ref a=d.getResult(0);
-                    BOOST_ASSERT(a);
-
-                    host=a->target;
-                    port=a->port;
-
-                    Log::getInstance()->msg(boost::str(boost::format("Using %s:%d") % host.c_str() % port));
-                    break;
-                }
-            }
-        } while (retries--) ;
-    } else {
-        host=rc->account->hostNameIp;
-        port=rc->account->port;
-    }
-
-    if (host.empty()) host=rc->account->getServer();
-
-    if (rc->account->legacySSL && rc->account->useEncryption) {
-        if (port==5222) port=5223;
-    }
-
-    Log::getInstance()->msg("Resolving ", host.c_str());
-
-    long ip=Socket::resolveUrl(host);
-
-    Log::getInstance()->msg(boost::str(boost::format("Connecting to %u.%u.%u.%u:%u") 
-        % (ip &0xff) % ((ip>>8) &0xff) % ((ip>>16) &0xff) % ((ip>>24)&0xff) % port));
-
+    Log::getInstance()->msg("Connect to ", host.c_str());
     if (rc->account->useEncryption) {
-        CeTLSSocket::ref tlsCon=CeTLSSocket::ref( new CeTLSSocket(ip, port));
+        ConnectionRef tlsCon=ConnectionRef( new CeTLSSocket(host, rc->account->port));
         rc->jabberStream->connection=tlsCon;
-        if (!rc->account->useSASL) 
-            tlsCon->startTls(rc->account->getServer(), rc->account->ignoreSslWarnings);
+        if (rc->account->legacySSL) ((CeTLSSocket*)(tlsCon.get()))->startTls(rc->account->ignoreSslWarnings);
     }
     else
-        rc->jabberStream->connection=ConnectionRef( new Socket(ip, port));
+        rc->jabberStream->connection=ConnectionRef( new Socket(host, rc->account->port));
 
     /*if (rc->jabberStream->connection==NULL) {
         Log::getInstance()->msg("Failed to open connection");
@@ -1021,39 +743,30 @@ int prepareAccount(){
     //rc->account->password="l12sx95a";
 
     rc->account=JabberAccountRef(new JabberAccount(TEXT("defAccount.bin")));
-    rc->myJid.setJid( rc->account->getJid() );
 
     //rc->account->useSASL=true;
     //rc->account->useEncryption=true;
     //rc->account->useCompression=true;
     return 0;
 }
-
 //////////////////////////////////////////////////////////////
-// TODO: refactoring: move into ResourceContext
-//////////////////////////////////////////////////////////////
-int initJabber(ResourceContextRef rc) {
+int initJabber() {
     if (rc->jabberStream) return 1;
     rc->jabberStanzaDispatcherRT=JabberStanzaDispatcherRef(new JabberStanzaDispatcher(rc));
     rc->jabberStanzaDispatcher2=JabberStanzaDispatcherRef(new JabberStanzaDispatcher(rc));
 
     //TODO: roster caching
-    if (!rc->roster)
-        rc->roster=RosterRef(new Roster(rc));
+    rc->roster=RosterRef(new Roster(rc));
     rc->roster->bindWindow(rosterWnd);
     rosterWnd->setIcon(icons::ICON_PROGRESS_INDEX);
     rosterWnd->roster=rc->roster;
-
-    rc->bookmarks=MucBookmarksRef(new MucBookmarks());
 
     rc->jabberStream=JabberStreamRef(new JabberStream(rc, JabberListenerRef(new JabberStreamEvents(rc))));
 
 	return 0;
 }
-//////////////////////////////////////////////////////////////
-// TODO: refactoring: move into ResourceContext
 //////////////////////////////////////////////////////////////////////////
-void streamShutdown(ResourceContextRef rc){
+void streamShutdown(){
     if (!rc->jabberStream) return;
     rc->jabberStream->sendXmppEndHeader();
 }
@@ -1069,7 +782,7 @@ void Shell_NotifyIcon(bool show, HWND hwnd){
         nid.uID = 100;      // Per WinCE SDK docs, values from 0 to 12 are reserved and should not be used.
         nid.uFlags = NIF_ICON | NIF_MESSAGE;
         nid.hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_BOMBUS));
-        nid.uCallbackMessage=SHELLNOTIFYICON;
+        nid.uCallbackMessage=WM_USER;
         nid.hWnd=hwnd;
 
         //Add the notification to the tray

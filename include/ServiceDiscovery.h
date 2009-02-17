@@ -1,59 +1,19 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
 #include <windows.h>
 
 #include <string>
-#include <stack>
 #include <utf8.hpp>
 
 #include "Wnd.h"
 #include "VirtualListView.h"
 
+#include "Contact.h"
 #include "OwnerDrawRect.h"
 
 #include "ResourceContext.h"
-
-class DiscoCommand: public IconTextElementContainer {
-public:
-    enum DiscoCmds {
-        ERR=-1,   //[v]
-        BACK=0,     //[v]
-        REGISTER=1, //[ ]
-        SEARCH=2,   //[ ]
-        EXECUTE=3,  //[v]
-        VCARD=4,    //[v]
-        JOINGC=5,   //[v]
-        ADD=6       //[ ]
-    };
-    DiscoCommand(std::wstring cmdName, int icon, int cmdId);
-    DiscoCmds cmdId;
-
-    typedef boost::shared_ptr<DiscoCommand> ref;
-    virtual int getColor() const;
-};
-
-class DiscoItem: public IconTextElementContainer {
-public:
-    DiscoItem(const std::string &jid, const std::string &node, const std::string &name);
-
-    std::string jid;
-    std::string node;
-    std::string name;
-
-    typedef boost::shared_ptr<DiscoItem> ref;
-
-    static bool compare(ODRRef left, ODRRef right);
-};
-
-struct DiscoNode {
-    std::string jid;
-    std::string node;
-    ODRListRef subnodes;
-    ODRRef cursorPos;
-};
-//////////////////////////////////////////////////////////////////////////
 
 class ServiceDiscovery : public Wnd{
 protected:
@@ -68,30 +28,18 @@ public:
 
     typedef boost::shared_ptr<ServiceDiscovery> ref;
 
-    virtual bool showWindow(bool show);
+    virtual void showWindow(bool show);
 
     void redraw();
 
-    static ServiceDiscovery::ref createServiceDiscovery(
-        HWND parent, 
-        ResourceContextRef rc, 
-        const std::string &jid, 
-        const std::string &node, 
-        bool go);
+    static ServiceDiscovery::ref createServiceDiscovery(HWND parent, ResourceContextRef rc, const std::string &jid);
 
     JabberDataBlockRef itemReply;
     JabberDataBlockRef infoReply;
 
-    void go();
-    void discoverJid(const std::string &jid, const std::string &node);
-    void back();
-    void vcard();
-    void joingc();
-    void execute();
-    void registerForm();
 
 protected:
-    std::stack<DiscoNode> nodes;
+    
 
     VirtualListView::ref nodeList;
     HWND editWnd;
@@ -99,13 +47,12 @@ protected:
     int width;
 
     std::string jid;
-    std::string node;
-
-    std::string newNode;
 
     boost::weak_ptr<ServiceDiscovery> thisRef;
 
     ResourceContextRef rc;
+    void go();
+    void discoverJid(const std::string &jid);
 
     void parseResult();
 

@@ -1,8 +1,7 @@
 //#include "stdafx.h"
-#include "JabberStream.h"
 
 #include "JabberAccount.h"
-#include "XmppError.h"
+#include "JabberStream.h"
 //#include <boost/thread.hpp>
 //#include <boost/bind.hpp>
 #include <stack>
@@ -11,39 +10,27 @@
 #include <utf8.hpp>
 #include <windows.h>
 
-JabberStream::JabberStream(void){
-    isRunning=false;
-}
+JabberStream::JabberStream(void){}
 
 void JabberStream::run(JabberStream * _stream){
 	Log::getInstance()->msg("Reader thread strated");
+
+	_stream->isRunning=true;
 
 	try {
         if (_stream->connection==NULL) {
             _stream->jabberListener->connect();
         }
         _stream->parser->bindStream( _stream->connection );
+		//_stream->parser-> parse();
+        _stream->parser-> parseStream();
+        _stream->jabberListener->endConversation(NULL);
 	} catch (std::exception ex) {
         _stream->jabberListener->endConversation(&ex);
-        _stream->isRunning=false;
-        Log::getInstance()->msg("Reader thread stopped");
-        _stream->rc->jabberStream=JabberStreamRef();
-        return;
 	}
-
-    _stream->isRunning=true;
-}
-
-void JabberStream::parseStream() {
-    if (!isRunning) return;
-    try {
-        parser-> parseStream();
-    } catch (std::exception ex) {
-        jabberListener->endConversation(&ex);
-        isRunning=false;
-        Log::getInstance()->msg("Reader thread stopped");
-        rc->jabberStream=JabberStreamRef();
-    }
+    Log::getInstance()->msg("Reader thread stopped");
+    _stream->rc->jabberStream=JabberStreamRef();
+    _stream->isRunning=false;
 }
 
 void JabberStream::tagStart(const std::string & tagname, const StringMap &attr) {
@@ -67,8 +54,7 @@ void JabberStream::tagStart(const std::string & tagname, const StringMap &attr) 
 
 bool JabberStream::tagEnd(const std::string & tagname) {
     if (xmlStack.empty()) {
-        if (tagname=="stream:stream") throw std::exception("Stream normal shutdown");
-        else throw std::exception("XML Stack underflow");
+        return (tagname=="stream:stream");
     }
 	JabberDataBlockRef stanza=xmlStack.top();
 	xmlStack.pop();
@@ -77,13 +63,6 @@ bool JabberStream::tagEnd(const std::string & tagname) {
         
         if (stanza->getTagName()!=tagname) {
             throw std::exception("XML: Tag mismatch");
-        }
-
-        if (tagname=="stream:error") {
-            XmppError::ref xe=XmppError::decodeStreamError(stanza);
-            std::string err("Stream error: ");
-            err+=xe->toString();
-            throw std::exception(err.c_str());
         }
 
 		JabberStanzaDispatcher * dispatcher= rc->jabberStanzaDispatcherRT.get();
@@ -104,7 +83,8 @@ bool JabberStream::tagEnd(const std::string & tagname) {
                     //todo: optional iq child blocks
                     JabberDataBlockRef err=iqError.addChild("error", NULL);
                         err->setAttribute("type","cancel");
-                        err->addChildNS("feature-not-implemented", "urn:ietf:params:xml:ns:xmpp-stanzas");
+                        err->addChild("feature-not-implemented", NULL)
+                            ->setAttribute("xmlns", "urn:ietf:params:xml:ns:xmpp-stanzas");
                     sendStanza(iqError);
                 }
             }
@@ -118,7 +98,7 @@ bool JabberStream::tagEnd(const std::string & tagname) {
 
 void JabberStream::plainTextEncountered(const std::string & body){
     if (xmlStack.empty()) return;
-	xmlStack.top()->setRawText(body);
+	xmlStack.top()->_setText(body);
 }
 
 #ifdef _WIN32_WCE
@@ -136,8 +116,6 @@ JabberStream::JabberStream(ResourceContextRef rc, JabberListenerRef listener){
 
 	this->rc=rc;
     this->jabberListener=listener;
-
-    isRunning=false;
 
 	HANDLE thread=CreateThread(NULL, 0, jabberStreamThread, this, 0, NULL);
     SetThreadPriority(thread, THREAD_PRIORITY_IDLE);

@@ -1,7 +1,7 @@
 //#include "stdafx.h"
 
 #include "JabberDataBlock.h"
-#include "boostheaders.h"
+#include <boost/assert.hpp>
 
 #include "XMLParser.h"
 
@@ -28,10 +28,10 @@ JabberDataBlock::~JabberDataBlock(void)
 
 std::string JabberDataBlock::getAttribute( const std::string & byName ) 
 {
-	StringMap::const_iterator i=attr.find(byName);
-    if (i==attr.end()) return std::string();
-	return XMLStringExpand(i->second);
-	//return XMLStringExpand(attr[byName]);
+	// TODO:
+	//StringMap::const_iterator i=attr.find(byName);
+	//return i->second;
+	return XMLStringExpand(attr[byName]);
 }
 
 bool JabberDataBlock::hasAttribute(const std::string & byName) {
@@ -56,11 +56,6 @@ JabberDataBlockRef JabberDataBlock::addChild(const char *_tagName, const char *_
 	return child;
 }
 
-JabberDataBlockRef JabberDataBlock::addChildNS(const char *_tagName, const char *xmlns ) {
-    JabberDataBlockRef child=addChild(_tagName, NULL);
-    child->setAttribute("xmlns", xmlns);
-    return child;
-}
 
 JabberDataBlockRef JabberDataBlock::getChildByName(const char * tagName) const{
     for (JabberDataBlockRefList::const_iterator c=childs.begin(); c!=childs.end(); c++) {
@@ -108,19 +103,10 @@ StringRef JabberDataBlock::toXML(){
 
 	if (childs.empty() && text.empty()) {
 		result->append("/>");
-
-        #ifdef DEBUG
-        result->append("\n");
-        #endif
-
-        return result;
+		return result;
 	}
 
 	result->append(">");
-
-    #ifdef DEBUG
-    if (!childs.empty()) result->append("\n");
-    #endif
 
     for (JabberDataBlockRefList::const_iterator c=childs.begin(); c!=childs.end(); c++) {
 		result->append( *((*c)->toXML()) );
@@ -130,11 +116,7 @@ StringRef JabberDataBlock::toXML(){
 	result->append("</");
 	result->append(getTagName());
 	result->append(">");
-
-    #ifdef DEBUG
-    result->append("\n");
-    #endif
-
+	
 	return result;
 
 }
@@ -160,4 +142,3 @@ JabberDataBlockRef JabberDataBlock::findChildNamespace( const char *tagName, con
     }
     return JabberDataBlockRef();
 }
-

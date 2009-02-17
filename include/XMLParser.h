@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/smart_ptr.hpp>
 #include "XMLEventListener.h"
 #include "Socket.h"
 #include <exception>
@@ -13,6 +13,7 @@ private:
 	ConnectionRef inStream;
 
 	char inbuf[XML_PREBUF_SZ];
+	int prebuffered;
 
     std::string sbuf;
     std::string tagname;
@@ -25,8 +26,7 @@ private:
         ENDTAGNAME,
         ATRNAME,
         ATRVALQS,
-        ATRVALQD,
-        CDATA
+        ATRVALQD
     };
     ParseState state;
 public:

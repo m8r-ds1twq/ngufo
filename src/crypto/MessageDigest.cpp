@@ -1,5 +1,4 @@
 #include "crypto/MessageDigest.h"
-#include "base64.h"
 /*
 * @(#)MessageDigest.java	1.7 95/08/15
 *
@@ -106,7 +105,14 @@ void MessageDigest::updateW(const std::wstring &input) {
 * Treat the string as a sequence of ISO-Latin1 (8 bit) characters.
 */
 void MessageDigest::updateASCII(const std::string &input) {
-	updateArray((const unsigned char *)input.c_str(), input.length());
+    int	i, len;
+    unsigned char x;
+
+    len = input.length();
+    for (i = 0; i < len; i++) {
+        x = (unsigned char) (input[i] & 0xff);
+        updateByte(x);
+    }
 }
 
 const unsigned char * MessageDigest::getDigestBits() const{
@@ -136,10 +142,4 @@ const std::string MessageDigest::getDigestHex() const{
     }
 
     return result;
-}
-
-const std::string MessageDigest::getDigestBase64() const{
-    if (!digestValid) return std::string();
-
-    return base64::base64Encode(digestBits, digestBitsLen);
 }

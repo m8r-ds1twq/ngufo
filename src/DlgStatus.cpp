@@ -17,14 +17,13 @@
 
 
 #include "utf8.hpp"
-#include "stringutils.h"
 
 extern HINSTANCE	g_hInst;			// current instance
-extern RosterListView::ref rosterWnd;
+extern RosterView::ref rosterWnd;
 
 
-void streamShutdown(ResourceContextRef rc);
-int initJabber(ResourceContextRef rc);
+void streamShutdown();
+int initJabber();
 
 wchar_t *statusNames []= { 
     TEXT("Online"),         TEXT("Free for chat"),  TEXT("Away"), 
@@ -77,14 +76,14 @@ INT_PTR CALLBACK DlgStatus::dialogProc(HWND hDlg, UINT message, WPARAM wParam, L
 		{
 
             presence::PresenceIndex status=(presence::PresenceIndex) SendDlgItemMessage(hDlg, IDC_C_STATUS, CB_GETCURSEL, 0,0);
-            short priority=(short)SendDlgItemMessage(hDlg, IDC_SPIN_PRIORITY, UDM_GETPOS, 0, 0);
+            int priority=SendDlgItemMessage(hDlg, IDC_SPIN_PRIORITY, UDM_GETPOS, 0, 0);
             std::string pmessage;
             GetDlgItemText(hDlg, IDC_E_STATUS, pmessage);
             
             //direct presences
             if (p->contact) {
                 std::string to;
-                GetDlgItemText(hDlg, IDC_E_JID, to); std::trim(to);
+                GetDlgItemText(hDlg, IDC_E_JID, to);
                 p->rc->sendPresence(to.c_str(), status, pmessage, priority);
             } else {
                 //store selected presence
@@ -96,9 +95,9 @@ INT_PTR CALLBACK DlgStatus::dialogProc(HWND hDlg, UINT message, WPARAM wParam, L
                 rosterWnd->setIcon(p->rc->status);
                 p->rc->sendPresence();
                 if (status==presence::OFFLINE) {
-                    streamShutdown(p->rc);
+                    streamShutdown();
                 } else {
-                    initJabber(p->rc);
+                    initJabber();
                 }
             }
 

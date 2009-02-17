@@ -2,7 +2,7 @@
 
 #include <CeTLSSocket.h>
 
-#include "boostheaders.h"
+#include <boost/assert.hpp>
 #include <string>
 #include "utf8.hpp"
 
@@ -10,28 +10,24 @@
 #include <sslsock.h>
 #include <schnlsp.h>
 
-#include "TimeFunc.h"
-#include "stringutils.h"
 // load SslCrackCertificate and SslFreeCertificate
 #define SSL_CRACK_CERTIFICATE_NAME TEXT("SslCrackCertificate")
 #define SSL_FREE_CERTIFICATE_NAME TEXT("SslFreeCertificate")
 
 //////////////////////////////////////////////////////////////////////////
-SSL_CRACK_CERTIFICATE_FN gSslCrackCertificate=0;
-SSL_FREE_CERTIFICATE_FN gSslFreeCertificate=0;
-HINSTANCE hSchannelDLL=0;
+SSL_CRACK_CERTIFICATE_FN gSslCrackCertificate;
+SSL_FREE_CERTIFICATE_FN gSslFreeCertificate;
+HINSTANCE hSchannelDLL;
 
-HRESULT LoadSSL(){
-
+HRESULT LoadSSL()
+{
     // already loaded?
     if (hSchannelDLL) return S_OK;
-    //if (gSslCrackCertificate && gSslFreeCertificate) return S_OK;
+    if (gSslCrackCertificate && gSslFreeCertificate) return S_OK;
 
     hSchannelDLL = LoadLibrary(TEXT("schannel.dll"));
     if (!hSchannelDLL) {
         // error logging
-        gSslCrackCertificate = NULL;
-        gSslFreeCertificate = NULL;
         return E_FAIL;
     }
 
@@ -40,7 +36,6 @@ HRESULT LoadSSL(){
 
     if (!gSslCrackCertificate || !gSslFreeCertificate) {
         // error logging
-
         gSslCrackCertificate = NULL;
         gSslFreeCertificate = NULL;
         FreeLibrary(hSchannelDLL);
@@ -62,6 +57,25 @@ HRESULT FreeSSL()
     return S_OK;
 }
 
+
+void strAppendInt(std::string &s, int n){
+    char tmpbuf[10];
+    sprintf(tmpbuf, "%d", n);
+    s+=tmpbuf;
+}
+
+std::string fileTimeToDate(FILETIME * time) {
+    SYSTEMTIME stime;
+    FileTimeToSystemTime(time, &stime);
+    std::string result;
+    strAppendInt(result, stime.wDay); result+=".";
+    strAppendInt(result, stime.wMonth); result+=".";
+    strAppendInt(result, stime.wYear);
+
+    return result;
+}
+
+
 int CeTLSSocket::SslValidate (
                  DWORD  dwType,
                  LPVOID pvArg,
@@ -74,16 +88,17 @@ int CeTLSSocket::SslValidate (
 
     if (s->ignoreSSLWarnings) return SSL_ERR_OKAY;
 
-    if (dwType!=SSL_CERT_X509) return SSL_ERR_CERT_UNKNOWN;
+    if (dwFlags!=SSL_CERT_X509) return SSL_ERR_CERT_UNKNOWN;
 
     if (pCertChain==NULL) return SSL_ERR_CERT_UNKNOWN;
 
     X509Certificate* pCert = NULL;
 
     if (dwFlags & SSL_CERT_FLAG_ISSUER_UNKNOWN) {
-        //TODO: parse Bombus-ng self-stored certificates
+        //TODO: ask for accept/decline certificate
 
-        //std::wstring url=utf8::utf8_wchar(s->url);
+
+        std::wstring url=utf8::utf8_wchar(s->url);
 
         if (!gSslCrackCertificate || !gSslFreeCertificate) return SSL_ERR_CERT_UNKNOWN;
 
@@ -93,8 +108,8 @@ int CeTLSSocket::SslValidate (
         std::string certInfo="\nCertificate Issuer unknown";
         certInfo+="\nIssuer: "; certInfo+=pCert->pszIssuer;
         certInfo+="\nSubject: "; certInfo+=pCert->pszSubject;
-        certInfo+="\nValid from: "; certInfo+=strtime::toLocalDate(pCert->ValidFrom);
-        certInfo+="\nValid until: "; certInfo+=strtime::toLocalDate(pCert->ValidUntil);
+        certInfo+="\nValid from: "; certInfo+=fileTimeToDate(&(pCert->ValidFrom));
+        certInfo+="\nValid until: "; certInfo+=fileTimeToDate(&(pCert->ValidUntil));
 
         certInfo+="\n\nAccept this certificate?";
 
@@ -102,7 +117,7 @@ int CeTLSSocket::SslValidate (
 
         std::wstring wcertInfo=utf8::utf8_wchar(certInfo);
 
-        int result=MessageBox(NULL, wcertInfo.c_str(), TEXT("SSL Certificate Error"), MB_OKCANCEL | MB_ICONEXCLAMATION );
+        int result=MessageBox(NULL, wcertInfo.c_str(), TEXT("SSL handshake Error"), MB_OKCANCEL | MB_ICONEXCLAMATION );
         if (result!=IDOK) return SSL_ERR_CERT_UNKNOWN;
     }
 
@@ -111,9 +126,12 @@ int CeTLSSocket::SslValidate (
 };
 
 
-CeTLSSocket::CeTLSSocket(const long addr, const int port){
+CeTLSSocket::CeTLSSocket(const std::string & url, const int port){
     bytesSent=bytesRecvd=0;
     ignoreSSLWarnings=false;
+
+    initWinsocks();
+    this->url=url;
 
     sock=socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock==INVALID_SOCKET) throwSocketError();
@@ -137,7 +155,7 @@ CeTLSSocket::CeTLSSocket(const long addr, const int port){
 
     struct sockaddr_in name;
     name.sin_family=AF_INET;
-    name.sin_addr.S_un.S_addr=addr;
+    name.sin_addr.S_un.S_addr=resolveUrl();
     name.sin_port= htons(port); // internet byte order
 
     int result=connect(sock, (sockaddr*)(&name), sizeof(name));
@@ -150,10 +168,9 @@ CeTLSSocket::~CeTLSSocket(){
     FreeSSL();
 }
 
-bool CeTLSSocket::startTls(const std::string &url, bool ignoreSSLWarnings){
+bool CeTLSSocket::startTls(bool ignoreSSLWarnings){
     this->ignoreSSLWarnings=ignoreSSLWarnings;
-    int result=LoadSSL();
-    BOOST_ASSERT(result==S_OK);
+    BOOST_ASSERT(LoadSSL()==S_OK);
     int ioctlresult=WSAIoctl(sock, SO_SSL_PERFORM_HANDSHAKE, (LPVOID)url.c_str(), url.length(), 0, 0, 0, 0, 0);
     if (ioctlresult==SOCKET_ERROR) throwSocketError();
     return true;
@@ -178,7 +195,7 @@ const std::string CeTLSSocket::getStatistics(){
     case SSL_PROT_SSL2_CLIENT: stats+="SSL2"; break;
     case SSL_PROT_SSL3_CLIENT: stats+="SSL3"; break;
     case SSL_PROT_TLS1_CLIENT: stats+="TLS1"; break;
-    default: std::strAppendInt(stats, SSLConnectionInfo.dwProtocol |0x80);
+    default: strAppendInt(stats, SSLConnectionInfo.dwProtocol |0x80);
     }
     stats+="\nChiper: ";
 
@@ -188,19 +205,19 @@ const std::string CeTLSSocket::getStatistics(){
         case CALG_DES: stats+="DES"; break;
         case CALG_3DES: stats+="Triple DES"; break;
         case CALG_SKIPJACK: stats+="Skipjack"; break;
-        default: std::strAppendInt(stats, SSLConnectionInfo.aiCipher | 0x80);
+        default: strAppendInt(stats, SSLConnectionInfo.aiCipher | 0x80);
     }
     stats+=", ";
-    std::strAppendInt(stats, SSLConnectionInfo.dwCipherStrength);
+    strAppendInt(stats, SSLConnectionInfo.dwCipherStrength);
 
     stats+="\nHash: ";
     switch(SSLConnectionInfo.aiHash) {
     case CALG_MD5: stats+="MD5"; break;
     case CALG_SHA: stats+="SHA"; break;
-    default: std::strAppendInt(stats, SSLConnectionInfo.aiHash);
+    default: strAppendInt(stats, SSLConnectionInfo.aiHash);
     }
     stats+=", ";
-    std::strAppendInt(stats, SSLConnectionInfo.dwHashStrength);
+    strAppendInt(stats, SSLConnectionInfo.dwHashStrength);
 
     stats+="\nKey Exchange: ";
 
@@ -210,10 +227,10 @@ const std::string CeTLSSocket::getStatistics(){
     case CALG_RSA_SIGN: stats+="RSA"; break;
 
     case CALG_KEA_KEYX: stats+="KEA"; break;
-    default: std::strAppendInt(stats, SSLConnectionInfo.aiExch);
+    default: strAppendInt(stats, SSLConnectionInfo.aiExch);
     }
     stats+=", ";
-    std::strAppendInt(stats, SSLConnectionInfo.dwExchStrength);
+    strAppendInt(stats, SSLConnectionInfo.dwExchStrength);
 
     stats+="\n";
 

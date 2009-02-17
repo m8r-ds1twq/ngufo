@@ -5,16 +5,8 @@
 #include <aygshell.h>
 #include "utf8.hpp"
 
-#include "wmuser.h"
-
-//для чтобы работала смена вкладок кнопками
-#include "TabCtrl.h"	
-extern TabsCtrlRef tabs;
-//*****
-
 extern HINSTANCE			g_hInst;
 extern int tabHeight;
-extern HWND mainWnd;
 
 ATOM VirtualListView::RegisterWindowClass() {
     WNDCLASS wc;
@@ -104,7 +96,6 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
                     }
                     HBRUSH bkBrush=CreateSolidBrush(bkColor);
                     SetBkColor(hdc, bkColor);
-                    ritem.right=p->clientRect.right; //full window-wide cursor
                     FillRect(hdc, &ritem, bkBrush);
                     DeleteObject(bkBrush);
                     odr->draw(hdc, ritem);
@@ -176,8 +167,7 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
     case WM_LBUTTONDOWN:
         {
             SetFocus(hWnd);
-            ODRRef focused=p->moveCursorTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            if (!(focused)) break;
+            if (!(p->moveCursorTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))) break;
             InvalidateRect(p->getHWnd(), NULL, true);
 
             SHRGINFO    shrg;
@@ -190,26 +180,15 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
             if (SHRecognizeGesture(&shrg) == GN_CONTEXTMENU) {
 
                 HMENU hmenu = p->getContextMenu();
-
-                VirtualListElement *velement=dynamic_cast<VirtualListElement *>(focused.get());
-                if (velement) hmenu=velement->getContextMenu(hmenu);
-
                 if (hmenu==NULL) break;
 
                 POINT pt={LOWORD(lParam), HIWORD(lParam) };
                 ClientToScreen(hWnd, &pt);
-                int cmdId=TrackPopupMenuEx(hmenu,
-                    /*TPM_LEFTALIGN |*/ TPM_TOPALIGN | TPM_RETURNCMD, 
+                TrackPopupMenuEx(hmenu,
+                    /*TPM_LEFTALIGN |*/ TPM_TOPALIGN,
                     pt.x, pt.y,
                     hWnd,
                     NULL);
-
-                bool cmdProcessed=false;
-                if (velement) 
-                    cmdProcessed=velement->OnMenuCommand(cmdId, p->getHWnd());
-
-                if (!cmdProcessed)
-                    p->OnCommand(cmdId, NULL);
 
                 DestroyMenu(hmenu);
             }
@@ -217,11 +196,9 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
         }
     case WM_LBUTTONDBLCLK:
         {
-            ODRRef oldCursor=p->cursorPos;
-            ODRRef focused=p->moveCursorTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            if (!(focused)) break;
+            if (!(p->moveCursorTo(LOWORD(lParam), HIWORD(lParam)))) break;
             InvalidateRect(p->getHWnd(), NULL, true);
-            if (focused==oldCursor) p->eventOk();
+            p->eventOk();
             break;
         }
 
@@ -237,33 +214,18 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
             int lkeyData=lParam;
             if (lkeyData & 0x80000000) break; //keyRelease 
             switch (vKey) {
-			/* UFO START */
-			/* Переключение вкладок джойстиком */
-			case VK_RIGHT:
-				PostMessage(tabs->getHWnd(), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
-				break;
-
-			case VK_LEFT:
-				PostMessage(tabs->getHWnd(), WM_COMMAND, TabsCtrl::PREVTAB, 0);
-				break;
-			/* UFO END */
-			case VK_UP:
+            case VK_UP:
                 p->moveCursor(-1);
                 break;
 
             case VK_DOWN: 
-				/* UFO START */
-				// переключаем фокус в поле ввода после второго нажатия кнопки вниз на последнем сообщении
-				if (p->cursorAtEnd() && IsWindow(p->EDIT_Control) ) SetFocus(p->EDIT_Control);
-				/* UFO END */
-				p->moveCursor(1);
+                p->moveCursor(1);
                 break;
 
-			case VK_RETURN:
+            case VK_RETURN:
                 if (lkeyData &0xc0000000) break;
                 p->eventOk();
-				break;
-			}
+            }
             p->cursorFit();
             InvalidateRect(p->getHWnd(), NULL, true);
 
@@ -320,7 +282,7 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
             break;
         }
 
-    case WM_VIRTUALLIST_REPLACE:
+    case WM_USER+1:
         {
             //TODO: create interconnecting message object to avoid pointers
             ODRListRef r=ODRListRef((ODRList *)lParam);
@@ -343,11 +305,10 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
 }
 
 
-ODRRef VirtualListView::moveCursorTo( int x, int y ) 
+bool VirtualListView::moveCursorTo( int x, int y ) 
 {
     y+=winTop;
-    if (y<0) return ODRRef();
-    if (!odrlist) return ODRRef();
+    if (y<0) return false;
 
     int yTop=0;
 
@@ -359,31 +320,20 @@ ODRRef VirtualListView::moveCursorTo( int x, int y )
                 cursorPos=*i;
 
                 cursorFit();
-                return cursorPos;
+                return true;
             }
         }
         yTop=yBot;
     }
-    return ODRRef();
+    return false;
 }
 
 bool VirtualListView::moveCursorEnd() {
     if (odrlist.get()==NULL) return false;
-    if (odrlist->empty()) {
-        cursorPos=ODRRef();
-    } else {
-        cursorPos=odrlist->back();
-    }
+    cursorPos=odrlist->back();
     cursorFit();
     return true;
 }
-
-bool VirtualListView::cursorAtEnd() {
-    if (odrlist.get()==NULL) return false;
-    if (odrlist->empty()) return false;
-    return cursorPos==odrlist->back();
-}
-
 
 void VirtualListView::cursorFit() {
     if (!cursorPos) return;
@@ -465,11 +415,7 @@ void VirtualListView::notifyListUpdate( bool redraw ) {
     InvalidateRect(getHWnd(), NULL, true);
 }
 
-void VirtualListView::eventOk() { 
-    VirtualListElement *velement=dynamic_cast<VirtualListElement *>(cursorPos.get());
-    if (velement) 
-        velement->OnMenuCommand(IDOK, getHWnd());
-}
+void VirtualListView::eventOk() { }
 
 void VirtualListView::moveCursor( int direction ) {
     for (ODRList::const_iterator i=odrlist->begin(); i!=odrlist->end(); i++) {
@@ -492,7 +438,6 @@ void VirtualListView::moveCursor( int direction ) {
             return;
         }
     }
-    if (odrlist->size()) cursorPos=odrlist->front();
 }
 
 void VirtualListView::addODR( ODRRef odr, bool redraw ) {
@@ -502,12 +447,6 @@ void VirtualListView::addODR( ODRRef odr, bool redraw ) {
 
 HMENU VirtualListView::getContextMenu() { return NULL; }
 void VirtualListView::OnCommand( int cmdId, LONG lParam ) {};
-
-void VirtualListView::setCursorPos( ODRRef newPos ) {
-    if (!odrlist) return;
-    cursorPos=newPos;
-    cursorFit();
-}
 
 ATOM VirtualListView::windowClass=0;
 

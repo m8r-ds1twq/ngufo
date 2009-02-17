@@ -5,13 +5,7 @@
 #include "TabCtrl.h"
 #include "ChatView.h"
 
-#include "JabberStream.h"
-
-#include "Image.h"
-
 extern TabsCtrlRef tabs;
-extern RosterListView::ref rosterWnd;
-extern ImgListRef skin;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,7 +43,7 @@ MucContact::Affiliation getAffiliationIndex(const std::string &role) {
 //////////////////////////////////////////////////////////////////////////
 ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
 
-    JabberDataBlockRef xmuc=block->findChildNamespace("x", "http://jabber.org/protocol/muc#user");
+    JabberDataBlockRef xmuc=block->findChildNamespace("x", "http://jabber.org/protocol/muc");
     if (!xmuc) return BLOCK_REJECTED;
 
     const std::string &from=block->getAttribute("from");
@@ -113,17 +107,9 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
 
         //setSortKey(nick);
 
-        switch (role) {
-        case MucContact::MODERATOR:
+        if (role==MucContact::MODERATOR) {
             c->transpIndex=icons::ICON_MODERATOR_INDEX;
-            break;
-        case MucContact::VISITOR:
-            {
-                Skin * il= dynamic_cast<Skin *>(skin.get());
-                c->transpIndex=(il)? il->getBaseIndex("visitors") : 0;
-                break;
-            }
-        default:
+        } else {
             c->transpIndex=0;
         }
 
@@ -171,11 +157,9 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
                 {
                     message+=" has left the channel";
                     const std::string & status=block->getChildText("status");
-                    if (status.length()) {
-                        message+=" (";
-                        message+=status;
-                        message+=")";
-                    }
+                    message+="(";
+                    message+=status;
+                    message+=")";
                 }
             }
         } else { //onlines
@@ -183,7 +167,7 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
             if (c->status>=presence::OFFLINE) {
                 // first online
                 std::string realJid=item->getAttribute("jid");
-                if (realJid.length()) {
+                if (realJid.length()>0) {
                     c->realJid=realJid;
                     message+=" (";
                     message+=realJid;  //for moderating purposes
@@ -197,11 +181,9 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
                     message+=affiliationName[affiliation-MucContact::OUTCAST];
 
                     const std::string & status=block->getChildText("status");
-                    if (status.length()) {
-                        message+=" (";
-                        message+=status;
-                        message+=")";
-                    }
+                    message+=" (";
+                    message+=status;
+                    message+=")";
                 }
             } else {
                 //change status
@@ -219,11 +201,9 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
                     else message+=show;
 
                     const std::string & status=block->getChildText("status");
-                    if (status.length()) {
-                        message+=" (";
-                        message+=status;
-                        message+=")";
-                    }
+                    message+=" (";
+                    message+=status;
+                    message+=")";
 
                 }
             }
@@ -245,37 +225,21 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
         }
     }
 
-    {
-        ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(c).get());
-
-        bool ascroll=(cv==NULL)? false: cv->autoScroll();
-
-        c->processPresence(block);
-
-        if (ascroll) {
-            cv->moveEnd();
-        }
-        if (cv) if (IsWindowVisible(cv->getHWnd())) cv->redraw();
-    }
+    c->processPresence(block);
     rc->roster->makeViewList();
 
+    Message::ref msg=Message::ref(new Message(message, from, Message::PRESENCE));
 
-    {
-        Message::ref msg=Message::ref(new Message(message, from, false, Message::PRESENCE, Message::extractXDelay(block) ));
+    Contact::ref room=roomGrp->room;
+    
+    room->messageList->push_back(msg);
 
-        Contact::ref room=roomGrp->room;
 
-        ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(room).get());
-
-        bool ascroll=(cv==NULL)? false: cv->autoScroll();
-        room->messageList->push_back(msg);
-
-        if (ascroll) {
-            cv->moveEnd();
-        }
-        if (cv) if (IsWindowVisible(cv->getHWnd())) cv->redraw();
+    ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(room).get());
+    if(cv) {
+        cv->moveUnread();
+        cv->redraw();
     }
-
     return BLOCK_PROCESSED;
 }
 
@@ -298,11 +262,7 @@ void ProcessMuc::initMuc( const std::string &jid, const std::string &password, R
     if (!room) {
         room=MucRoom::ref(new MucRoom(jid));
         roomGrp->room=room;
-        room->group=roomGrp->getName();
     }
-
-    rosterWnd->openChat(room);
-    
 
     //3. selfcontact
     roomGrp->selfContact=getMucContactEntry(jid, rc);
@@ -334,7 +294,6 @@ MucRoom::MucRoom( const std::string &jid ) {
     offlineIcon=presence::OFFLINE;
 
     nUnread=0;
-    composing=false; acceptComposing=false;
 
     transpIndex=icons::ICON_GROUPCHAT_INDEX;
 
@@ -357,56 +316,15 @@ MucContact::MucContact( const std::string &jid )
     this->status=presence::OFFLINE;
     offlineIcon=presence::OFFLINE;
 
-    composing=false;
-    acceptComposing=false;
-
     nUnread=0;
 
     transpIndex=0;
 
     update();
     messageList=ODRListRef(new ODRList);
-    enableServerHistory=Contact::DISABLED_STATE;
 }
 
 void MucContact::update() {
     wjid=utf8::utf8_wchar( jid.getResource() );
     init();
-}
-
-void MucContact::changeRole( ResourceContextRef rc, Role newRole ) {
-    BOOST_ASSERT(newRole<=MODERATOR);
-
-    JabberDataBlockRef item=JabberDataBlockRef(new JabberDataBlock("item"));
-    item->setAttribute("nick",jid.getResource());
-    item->setAttribute("role",roleName[newRole]);
-    //todo:    
-    //  if (!reason.empty) item->addChild("reason", reason);
-
-    changeMucItem(rc, item);
-}
-
-void MucContact::changeAffiliation( ResourceContextRef rc, Affiliation newAffiliation ) {
-    BOOST_ASSERT(newAffiliation<=OWNER);
-
-    JabberDataBlockRef item=JabberDataBlockRef(new JabberDataBlock("item"));
-    Jid rj(realJid);
-    item->setAttribute("jid",rj.getBareJid());
-    item->setAttribute("affiliation",affiliationName[newAffiliation-OUTCAST]);
-    //todo:    
-    //  if (!reason.empty) item->addChild("reason", reason);
-
-    changeMucItem(rc, item);
-}
-
-void MucContact::changeMucItem(ResourceContextRef rc, JabberDataBlockRef item) {
-
-    JabberDataBlock iq("iq");
-    iq.setAttribute("type","set");
-    iq.setAttribute("id","muc-a");
-    iq.setAttribute("to",jid.getBareJid());
-
-    iq.addChildNS("query","http://jabber.org/protocol/muc#admin")
-        ->addChild(item);
-    rc->jabberStream->sendStanza(iq);
 }

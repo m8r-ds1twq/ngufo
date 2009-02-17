@@ -2,27 +2,14 @@
 #include <commctrl.h>
 #include <windowsx.h>
 #include <aygshell.h>
-#include <sipapi.h>
 #include "../vs2005/ui/ui.h"
 
-#include "Sysinfo.h"
-#include "wmuser.h"
 #include "ResourceContext.h"
 #include "JabberStream.h"
-#include "JabberAccount.h"
 #include "TabCtrl.h"
 #include "ProcessMUC.h"
 
 #include "Smiles.h"
-#include "History.h"
-
-#include "LastActivity.h"
-
-#include "config.h"
-
-#include "stringutils.h"
-
-#include "VcardForm.h"				/* to vCard ICO	*/
 
 extern HINSTANCE			g_hInst;
 extern int tabHeight;
@@ -30,8 +17,6 @@ extern HWND	g_hWndMenuBar;		// menu bar handle
 extern ResourceContextRef rc;
 extern ImgListRef skin;
 extern SmileParser *smileParser;
-extern HWND		mainWnd;
-extern TabsCtrlRef tabs;			/* to vCard ICO */
 
 //////////////////////////////////////////////////////////////////////////
 ATOM ChatView::RegisterWindowClass() {
@@ -55,7 +40,7 @@ ATOM ChatView::RegisterWindowClass() {
 
 //////////////////////////////////////////////////////////////////////////
 // real WndProc for edit box
-//long (WINAPI *EditWndProc)(HWND w,UINT msg,WPARAM wParam,LPARAM lParam); 
+long (WINAPI *EditWndProc)(HWND w,UINT msg,WPARAM wParam,LPARAM lParam); 
 
 namespace editbox {
     static bool editBoxShifts=false;
@@ -85,15 +70,13 @@ long WINAPI EditSubClassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
                 HMENU hmenu = CreatePopupMenu();
                 if (hmenu==NULL) break;
 
-                AppendMenu(hmenu, (smileParser->hasSmiles())? MF_STRING : MF_STRING | MF_GRAYED, ADD_SMILE, TEXT("Add Smile"));
+                AppendMenu(hmenu, (smileParser->hasSmiles())? MF_STRING : MF_STRING | MF_GRAYED, WM_USER, TEXT("Add Smile"));
                 AppendMenu(hmenu, MF_SEPARATOR, 0, NULL);
                 AppendMenu(hmenu, cut, WM_CUT, TEXT("Cut") );
                 AppendMenu(hmenu, cut, WM_COPY, TEXT("Copy") );
                 AppendMenu(hmenu, paste, WM_PASTE, TEXT("Paste") );
                 AppendMenu(hmenu, MF_SEPARATOR, 0, NULL);
                 AppendMenu(hmenu, undo, EM_UNDO, TEXT("Undo") );
-                AppendMenu(hmenu, MF_SEPARATOR, 0, NULL);
-				AppendMenu(hmenu, MF_STRING, IDM_ME, TEXT("/ME")); 
 
                 POINT pt={LOWORD(lParam), HIWORD(lParam) };
                 ClientToScreen(hWnd, &pt);
@@ -104,18 +87,7 @@ long WINAPI EditSubClassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
                     hWnd,
                     NULL);
 
-                if (cmdId==ADD_SMILE) SmileBox::showSmileBox(hWnd, pt.x, pt.y, smileParser);
-				if (cmdId==IDM_ME) 
-					{	
-						//определ€ем позиции выделени€ текста чтобы потом это вернуть
-						int ndx1 = 0, ndx2 = 0;
-						SendMessage (hWnd, EM_GETSEL, (WPARAM)&ndx1, (LPARAM)&ndx2);
-						SendMessage (hWnd, EM_SETSEL, (WPARAM)0, (LPARAM)0);				//помещ€ем курсор в начало строки
-						SendMessage (hWnd, EM_REPLACESEL, 0, (LPARAM) (L"/me ")); 			// "/me "
-						SetFocus(hWnd);	//фокус на поле ввода, т.к. он там все равно понадобитс€!
-						//возвращ€ем выделение на места со смещением в 5ть символов
-						SendMessage (hWnd, EM_SETSEL, (WPARAM)(ndx1+5), (LPARAM)(ndx2+5));
-					}
+                if (cmdId==WM_USER) SmileBox::showSmileBox(hWnd, pt.x, pt.y, smileParser);
 
                 DestroyMenu(hmenu);
 
@@ -129,18 +101,7 @@ long WINAPI EditSubClassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
     case WM_KEYDOWN:
         if (wParam==VK_CONTROL) editbox::editBoxShifts=true;
         if (wParam==VK_SHIFT)   editbox::editBoxShifts=true;
-		//if (wParam==VK_LEFT)	PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::PREVTAB, 0);
-		//if (wParam==VK_RIGHT)	PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
-		if (wParam==VK_UP) //выводит фокус обратно в сообщени€
-		{
-			//этот способ реализации подсказал skipyrich :)
-			int ndx1 = 0, ndx2 = 0;
-			SendMessage (hWnd, EM_GETSEL, (WPARAM)&ndx1, (LPARAM)&ndx2);
-			int len = SendMessage (hWnd, EM_LINELENGTH,(WPARAM)0, (LPARAM)0);	//вычисл€ем длину строки 
-			if (ndx1<=len) //отправл€ем сообщение о необходимости выделить MessageList
-				SendMessage(GetParent(hWnd), WM_COMMAND, (WPARAM)8787, (LPARAM)0);	
-		}
-		break; 
+        break; 
     case WM_KEYUP:
         editbox::editBoxShifts=false;
         break;
@@ -149,19 +110,6 @@ long WINAPI EditSubClassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
             PostMessage(GetParent(hWnd), WM_COMMAND, IDS_SEND, 0);
             return 0;
         }
-        if (wParam==VK_TAB) {
-            PostMessage(GetParent(hWnd), WM_COMMAND, IDC_COMPLETE, 0);
-            return 0;
-        }
-        if (wParam>=' ') 
-            PostMessage(GetParent(hWnd), WM_COMMAND, IDC_COMPOSING, true);
-        break;
-    case WM_SETFOCUS:
-        if (Config::getInstance()->raiseSIP) SipShowIM(SIPF_ON);
-        break;
-    case WM_KILLFOCUS:
-        if (Config::getInstance()->raiseSIP) SipShowIM(SIPF_OFF);
-        PostMessage(GetParent(hWnd), WM_COMMAND, IDC_COMPOSING, false);
         break;
     } 
     return CallWindowProc(OldWndProc,hWnd,msg,wParam,lParam); 
@@ -206,7 +154,6 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             p->msgList->colorInterleaving=true;
 
             p->editWnd=DoCreateEditControl(hWnd);
-			p->msgList->EDIT_Control=p->editWnd;
             p->calcEditHeight();
 
             p->msgList->bindODRList(p->contact->messageList);
@@ -223,10 +170,9 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             SetTextColor(hdc, p->contact->getColor());
             p->contact->draw(hdc, rc);
 
-            int iconwidth= skin->getElementWidth();
-            skin->drawElement(hdc, icons::ICON_CLOSE, p->width-2-iconwidth, 0);
-            skin->drawElement(hdc, icons::ICON_TRASHCAN_INDEX, p->width-2-iconwidth*2, 0);
-			skin->drawElement(hdc, icons::ICON_VCARD, p->width-2-iconwidth*3,0);  // vCard button in Tab
+            skin->drawElement(hdc, icons::ICON_CLOSE, p->width-2-skin->getElementWidth(), 0);
+
+            
 
             /*SetBkMode(hdc, TRANSPARENT);
             LPCTSTR t=p->title.c_str();
@@ -237,10 +183,6 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
         EndPaint(hWnd, &ps);
         break;
 
-    //case WM_KILLFOCUS:
-    //    p->contact->nUnread=0;
-    //    break;
-
     case WM_SIZE: 
         { 
             HDWP hdwp; 
@@ -249,9 +191,7 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             int height=GET_Y_LPARAM(lParam);
             p->width=GET_X_LPARAM(lParam);
 
-            //int ySplit=height-p->editHeight;
-			// добавить опуцию в настройки :)
-			int ySplit=(sysinfo::screenIsRotate()) ? height-p->editHeight/2 : height-p->editHeight;
+            int ySplit=height-p->editHeight;
 
             p->calcEditHeight();
 
@@ -293,22 +233,7 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             if (wParam==IDS_SEND) {
                 p->sendJabberMessage();
             }
-            if (wParam==IDC_COMPLETE) {
-                p->mucNickComplete();
-            }
-
-            if (wParam==IDC_COMPOSING) {
-                p->setComposingState(lParam!=0);
-            }
-			//передаем управление 
-			if (wParam==8787) {
-				SetFocus(p->msgList->getHWnd());
-
-				//SendMessage(p->msgList->getHWnd(),WM_LBUTTONDOWN,(WPARAM)0, (LPARAM)0);
-				//SendMessage(p->msgList->getHWnd(), WM_LBUTTONDOWN, 0,(LPARAM) MAKELONG(10,10));
-//				MessageBox(hWnd,L"TEXT",L"TITLE",MB_OK);
-			}
-			break;             
+            break;             
         }
         /*case WM_CTLCOLORSTATIC:
         case WM_CTLCOLORLISTBOX:
@@ -327,36 +252,11 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_LBUTTONDOWN:
         SetFocus(hWnd);
         if ((GET_Y_LPARAM(lParam))>tabHeight) break;
-        
-        if (GET_X_LPARAM(lParam) > (p->width)-2-(skin->getElementWidth()) ) {
+        if (GET_X_LPARAM(lParam) > p->width-2-skin->getElementWidth()) {
             PostMessage(GetParent(hWnd), WM_COMMAND, TabsCtrl::CLOSETAB, 0);
-            break;
         }
-        if (GET_X_LPARAM(lParam) > (p->width)-2-(skin->getElementWidth())*2) {
-            int result=MessageBox(
-                p->getHWnd(), 
-                L"Are You sure want to clear this chat session?", 
-                L"Clear chat", 
-                MB_YESNO | MB_ICONWARNING);
-            if (result==IDYES) {
-                p->contact->messageList->clear();
-                p->msgList->moveCursorEnd();
-            }
-            break;
-        }
-		if (GET_X_LPARAM(lParam) > (p->width)-2-(skin->getElementWidth())*3) {
-			if (!rc->isLoggedIn()) break;
-			WndRef vc=VcardForm::createVcardForm(tabs->getHWnd(), p->contact->rosterJid, rc, false);
-			tabs->addWindow(vc);
-			tabs->switchByWndRef(vc);
-		}
         break;
 
-	case WM_KEYDOWN:
-		//if (wParam==VK_LEFT)	PostMessage(GetParent(hWnd), WM_COMMAND, TabsCtrl::PREVTAB, 0);
-		//if (wParam==VK_RIGHT)	PostMessage(GetParent(hWnd), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
-
-		break;
     case WM_DESTROY:
         //TODO: Destroy all child data associated eith this window
 
@@ -381,7 +281,7 @@ ChatView::ChatView( HWND parent, Contact::ref contact )
     //TEXTMETRIC txm;
     //GetTextMetrics(NULL, &txm); //TODO - hdc must not be NULL
     //editHeight=txm.tmHeight*4;
-    editHeight=(sysinfo::screenIsVGA())? 50*2 : 50;
+    editHeight=60;
 
     this->contact=contact;
 
@@ -405,9 +305,8 @@ void ChatView::addMessage(const std::string & msg) {
     msgList->addODR(r, true);
 }
 
-bool ChatView::showWindow( bool show ) {
-    bool oldState=Wnd::showWindow(show);
-    if (oldState!=show) contact->nUnread=0;
+void ChatView::showWindow( bool show ) {
+    Wnd::showWindow(show);
 
     TBBUTTONINFO tbbi;
     tbbi.cbSize = sizeof(tbbi);
@@ -421,9 +320,8 @@ bool ChatView::showWindow( bool show ) {
     if (show) msgList->notifyListUpdate(true);
     //if (show) InvalidateRect(msgList->getHWnd(), NULL, false);
 
-	if (show  & Config::getInstance()->autoFEdit) SetFocus(editWnd);
+    if (show) SetFocus(editWnd);
 
-    return oldState;
 }
 
 void ChatView::redraw(){
@@ -432,39 +330,22 @@ void ChatView::redraw(){
     //InvalidateRect(msgList->getHWnd(), NULL, false);
 }
 
-void ChatView::moveEnd() {
+void ChatView::moveUnread() {
     msgList->moveCursorEnd();
 }
-
-bool ChatView::autoScroll() {
-	// авто скроллинг публика просит сделать настраиваемым :) - чтож сделаем! но в след сборке 
-    if (!IsWindowVisible(getHWnd())) return false;
-    return (msgList->cursorAtEnd());
-}
-
 ATOM ChatView::windowClass=0;
 
 //////////////////////////////////////////////////////////////////////////
 void ChatView::sendJabberMessage() {
-    int len=SendMessage(editWnd, WM_GETTEXTLENGTH, 0, 0);
+    wchar_t buf[1024];
+    int len=SendMessage(editWnd, WM_GETTEXT, 1024, (LPARAM) buf);
     if (len==0) return;
-    len+=1; //null-terminating char
-
-    wchar_t *buf=new wchar_t[len+1];
-    int actualLen=SendMessage(editWnd, WM_GETTEXT, len, (LPARAM) buf);
     std::string body=utf8::wchar_utf8(buf);
-    delete[] buf; 
 
-    std::trimTail(body);
-    if (body.length()==0) return;
-
-    Message::ref msg=Message::ref(new Message(body, rc->account->getNickname(), false, Message::SENT, strtime::getCurrentUtc() ));
+    Message::ref msg=Message::ref(new Message(body, "", Message::SENT));
     bool muc=boost::dynamic_pointer_cast<MucRoom>(contact);
 
-    if (!muc) {
-        contact->messageList->push_back(msg);
-        History::getInstance()->appendHistory(contact, msg);
-    }
+    if (!muc) contact->messageList->push_back(msg);
 
     msgList->moveCursorEnd();
     redraw();
@@ -473,27 +354,13 @@ void ChatView::sendJabberMessage() {
 
     std::string to=(muc)?contact->jid.getBareJid() : contact->jid.getJid();
     JabberDataBlockRef out=msg->constructStanza(to);
-    if (muc) out->setAttribute("type","groupchat"); 
-    else {
-        /* xep-0022; deprecated; will be re-enabled with entity caps
-        JabberDataBlockRef x=out->addChildNS("x", "jabber:x:event");
-        x->addChild("delivered", NULL); 
-        x->addChild("composing", NULL);
-        */
+    if (muc) out->setAttribute("type","groupchat");
 
-        if (Config::getInstance()->composing)
-            out->addChildNS("active","http://jabber.org/protocol/chatstates");
-
-        if (Config::getInstance()->delivered)
-            //if (! contact->jid.getResource().empty() ) 
-            out->addChildNS("request","urn:xmpp:receipts");
-    }
-    composing=false;
     //Reset form
-	rc->jabberStream->sendStanza(*out);
-    LastActivity::update();
+    rc->jabberStream->sendStanza(*out);
 
-    SendMessage(editWnd, WM_SETTEXT, 1, (LPARAM) L"");
+    buf[0]=0;
+    SendMessage(editWnd, WM_SETTEXT, 1024, (LPARAM) buf);
 }
 
 void ChatView::calcEditHeight() {
@@ -501,113 +368,6 @@ void ChatView::calcEditHeight() {
     GetWindowRect(editWnd, &rect);
 }
 
-//////////////////////////////////////////////////////////////////////////
-bool nickCompare( std::wstring left, std::wstring right ) {
-    return (_wcsicmp(left.c_str(), right.c_str()) < 0);
-}
-
-void ChatView::mucNickComplete() {
-    //step 1 - verify if this chat is muc-chat
-    MucGroup::ref roomGrp;
-    roomGrp=boost::dynamic_pointer_cast<MucGroup> (rc->roster->findGroup(contact->jid.getBareJid()));
-    if (!roomGrp) return;
-    if (roomGrp->room!=contact) return;
-
-    //step 2 - extracting data for autocomplete
-    wchar_t buf[1024];
-    int len=SendMessage(editWnd, WM_GETTEXT, 1024, (LPARAM) buf);
-    size_t mbegin;
-    size_t mend;
-    SendMessage(editWnd, EM_GETSEL, (WPARAM)&mbegin, (LPARAM)&mend);
-
-    //step 3 - search nick begin and end
-    size_t nbegin=mbegin;
-    while (nbegin>0) {
-        nbegin--;
-        if (iswspace(buf[nbegin])) { nbegin++; break; }
-    }
-
-    size_t nend=mend;
-    while (nend>mbegin) {
-        nend--;
-        if (buf[nend]==':') continue;
-        if (!iswspace(buf[nend])) { nend++; break; }
-    }
-
-    //now: [nbegin..mbegin) - constant part (case may be altered)
-    size_t clen=mbegin-nbegin;
-    //     [mbegin..mend) - may be fully rewritten, selection will be kept
-    //     [nend..mend) = ':' + whitespaces
-    size_t nlen=nend-nbegin;
-
-
-    //step 4 - pull and filter nicknames
-    WStringVector nicks;
-    {
-        Roster::ContactListRef participants=rc->roster->getGroupContacts(roomGrp);
-
-        for (Roster::ContactList::iterator i=participants->begin(); i!=participants->end(); i++) {
-            std::wstring &ws=utf8::utf8_wchar( (*i)->jid.getResource() );
-
-            if (ws.length()<clen) continue;
-            if (clen>0) if (_wcsnicmp(buf+nbegin, ws.c_str(), clen)!=0) continue;
-
-            nicks.push_back(ws);
-        }
-    }
-    if (nicks.empty()) return;
-
-    //step 5 - sorting
-    stable_sort(nicks.begin(), nicks.end(), nickCompare);
-
-    //step 6 - search for nick instance
-    int loop=nicks.size();
-    WStringVector::iterator i=nicks.begin();
-
-    while (loop) {
-        std::wstring &s=(*i);
-
-        i++; 
-        if (i==nicks.end()) 
-            i=nicks.begin();
-        loop--;
-
-        if (s.length()==nlen) {
-            if (_wcsnicmp(buf+nbegin, s.c_str(), nlen)==0) break;
-        } 
-    }
-
-
-    std::wstring &s=(*i);
-    s+=L": ";
-    SendMessage(editWnd, EM_SETSEL, nbegin, mend);
-    SendMessage(editWnd, EM_REPLACESEL, TRUE, (LPARAM)s.c_str());
-    SendMessage(editWnd, EM_SETSEL, mbegin, nbegin+s.length());
-}
-
-void ChatView::setComposingState( bool composing ) {
-    if (!Config::getInstance()->composing) return;
-    if (!rc->isLoggedIn()) return;
-
-    if (!contact->acceptComposing) return;
-    if (composing==this->composing) return;
-
-    this->composing=composing;
-
-    std::string to=contact->jid.getJid();
-    JabberDataBlockRef out=JabberDataBlockRef(new JabberDataBlock("message", NULL)); 
-    out->setAttribute("to", to);
-    out->addChildNS(
-        (composing)? "composing" : "paused",
-        "http://jabber.org/protocol/chatstates");
-
-    /* xep-0022 deprecated; will be re-enabled with entity caps
-    JabberDataBlockRef x=out->addChildNS("x", "jabber:x:event");
-    x->addChild("id", NULL);
-    if (composing) x->addChild("composing", NULL);
-    */
-    rc->jabberStream->sendStanza(*out);
-}
 //////////////////////////////////////////////////////////////////////////
 class FontMetricCache {
 public: 
@@ -654,7 +414,6 @@ FontMetricCache fmc;
 
 void MessageElement::init() {
     //TODO: fix bug with cursor fit immediately after init();
-    smiles=true; singleLine=false;
     RECT r={0,0,230,10}; //todo: fix width detection
     HDC tmp=CreateCompatibleDC(NULL);
     measure(tmp, r);
@@ -695,13 +454,6 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
     int mw=rt.right;
 
     bool inUrl=FALSE;
-    int lHeight=fmc.getHeight();
-
-    if (!measure) if (singleLine) {
-        skin->drawElement(hdc, icons::ICON_MSGCOLLAPSED_INDEX, xpos, ypos);
-        xpos+=skin->getElementWidth()/2;
-        xbegin=xpos;
-    }
 
     wchar_t c;
     do { 
@@ -710,7 +462,7 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
             case 0: break; //newline;
                 //TODO: fix /n and /r/n
             case 0x0d: if (*(end+1)==0x0a) end++;
-            case 0x0a: end++; if (!singleLine) break; //newline;
+            case 0x0a: end++; break; //newline;
 
             case 0x01: 
                 if (hbr==NULL) {
@@ -739,10 +491,10 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
             case '/':
             case '.':
             case ',':
-                if (!inUrl) if (!singleLine) wordBegin=end+1;
+                if (!inUrl) wordBegin=end+1;
             default:
                 smileEnd=end;
-                if (smiles) if (!inUrl) {
+                if (!inUrl) {
                     smileIndex=smileParser->findSmile(&smileEnd);
                     if (smileIndex>=0) {
                         if (!measure) ExtTextOut(hdc, xbegin, ypos, ETO_CLIPPED, &rt, lineBegin, end-lineBegin, NULL);
@@ -752,7 +504,6 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
                             LineTo(hdc, xpos, h);
                         }
                         int smileWidth=smileParser->icons->getElementWidth();
-                        lHeight=smileWidth;
                         lineBegin=end=smileEnd; wordBegin=NULL; xbegin=xpos+smileWidth;
                         if (!measure) {
                             if (ypos<rt.bottom && ypos+smileWidth>=rt.top)
@@ -769,13 +520,8 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
                 } else if (wordBegin) end=wordBegin;
         }
 
-        const wchar_t *lineEnd=end;
-        while (lineEnd>lineBegin) {
-            if (*(lineEnd-1)>0x0d) break;
-            lineEnd--;
-        }
 
-        if (!measure) ExtTextOut(hdc, xbegin, ypos, ETO_CLIPPED, &rt, lineBegin, lineEnd-lineBegin, NULL);
+        if (!measure) ExtTextOut(hdc, xbegin, ypos, ETO_CLIPPED, &rt, lineBegin, end-lineBegin, NULL);
         if (inUrl) {
             int h=ypos+fmc.getHeight()-1;
             MoveToEx(hdc,xbegin, h, NULL);
@@ -783,9 +529,7 @@ void MessageElement::render( HDC hdc, RECT &rt, bool measure ) const{
         }
         xbegin=rt.left;
 
-        ypos+=lHeight; xpos=rt.left; lineBegin=end; wordBegin=NULL; //newline
-        lHeight=fmc.getHeight();
-        if (singleLine) break;
+        ypos+=fmc.getHeight(); xpos=rt.left; lineBegin=end; wordBegin=NULL; //newline
         //if (c) end++;
     } while (c);
 
@@ -804,68 +548,3 @@ MessageElement::MessageElement(const std::string &str) {
 const wchar_t * MessageElement::getText() const { return wstr.c_str(); }
 
 int MessageElement::getColor() const { return 0; }
-
-HMENU MessageElement::getContextMenu( HMENU menu ) {
-    if (!menu) 
-        menu=CreatePopupMenu(); 
-    else
-        AppendMenu(menu, MF_SEPARATOR , 0, NULL);
-
-    AppendMenu(menu, MF_STRING, WM_COPY, L"Copy" );
-    AppendMenu(menu, MF_SEPARATOR , 0, NULL);
-    AppendMenu(menu, (singleLine)? MF_STRING  :  MF_STRING | MF_CHECKED, IDOK, L"Expanded" );
-    AppendMenu(menu, (smiles)? MF_STRING | MF_CHECKED  :  MF_STRING, IDM_SMILES, L"Smiles" );
-	//AppendMenu(menu, MF_STRING, IDM_Citata, L"÷итировать");
-	//AppendMenu(menu, MF_STRING, IDM_ME, "/ME"); - //не туда :D 
-    return menu;
-}
-
-bool MessageElement::OnMenuCommand(int cmdId, HWND parent){
-    switch (cmdId) {
-	/*	case IDM_Citata:
-			{
-				 //Log::getInstance()->msg(wstr.);		
-				SetWindowText(ChatView::getEditWnd(),(wchar_t)wstr);
-			}*/
-        case WM_COPY:
-            {
-                std::wstring copy=wstr;
-                // striping formating
-                size_t i=0;
-                while (i<copy.length()) {
-                    if (copy[i]<0x09) {
-                        copy.erase(i,1);
-                        continue;
-                    }
-                    i++;
-                }
-                int dsize=sizeof(wchar_t)*(copy.length()+1);
-                HANDLE hmem=LocalAlloc(LPTR, dsize);
-                if (!hmem) return true;
-                memcpy(hmem, copy.c_str(), dsize);
-
-                if (OpenClipboard(NULL)) {
-                    EmptyClipboard(); //need to take ownership
-                    SetClipboardData(CF_UNICODETEXT, hmem);
-                    CloseClipboard();
-                } else LocalFree(hmem);
-                return true;
-            }
-        case IDOK:
-            {
-                singleLine=!singleLine;
-                smiles=!smiles;
-            }
-        case IDM_SMILES:
-            {
-                smiles=!smiles;
-                RECT rt={0,0,width,0};
-                render(NULL, rt, true);
-                width=rt.right-rt.left;
-                height=rt.bottom-rt.top;
-                InvalidateRect(parent, NULL, true);
-                return true;
-            }
-    }
-    return false;
-}

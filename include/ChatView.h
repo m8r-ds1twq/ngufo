@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
 #include <windows.h>
 
@@ -21,27 +21,23 @@ public:
 
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     void sendJabberMessage();
-    void mucNickComplete();
-    void setComposingState(bool composing);
     //virtual const wchar_t * getWindowTitle() const;
     virtual const ODR * getODR() const;
 
     typedef boost::shared_ptr<ChatView> ref;
 
     void addMessage(const std::string & msg);
-    bool autoScroll();
-    void moveEnd();
+    void moveUnread();
 
-    virtual bool showWindow(bool show);
+    virtual void showWindow(bool show);
 
-    void redraw();
-	
+    void ChatView::redraw();
+
 protected:
     VirtualListView::ref msgList;
     HWND		editWnd;
     int editHeight;
     int width;
-    bool composing;
 
     Contact::ref contact;
 

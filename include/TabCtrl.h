@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
 #include <windows.h>
 #include <aygshell.h>
@@ -27,9 +27,7 @@ public:
     enum WmCommands {
         CLOSETAB=41000,
         SWITCH_TAB,
-        USERCMD=42000,
-		NEXTTAB=43000,
-		PREVTAB=44000
+        USERCMD=42000
     };
 
 protected:
@@ -39,8 +37,6 @@ protected:
     virtual void menuUserActions(int cmdId, DWORD userData) {};
 
     HMENU getContextMenu();
-
-    void processPopupMenu(bool cmdBar, int posX, int posY);
 
     struct TabInfo {
         int tabWidth;

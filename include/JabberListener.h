@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "boostheaders.h"
+#include <boost/smart_ptr.hpp>
 #include "JabberDataBlock.h"
 
 

@@ -4,8 +4,6 @@
 #include <windowsx.h>
 #include "utf8.hpp"
 
-#include "Sysinfo.h"
-
 extern std::wstring skinRootPath;
 
 BNode::BNode(){ 
@@ -263,14 +261,7 @@ void SmileBox::showSmileBox(HWND editBoxWnd, int x, int y, SmileParser *parser) 
 
     if (x+width>parent.right) x=parent.right-width-5;
     y-=height;
-
-    //TODO: verify that hardcodes or replace with window top 
-     
-    if (sysinfo::screenIsVGA()) {
-        if (y<48) y=48; //VGA smile fix
-    } else {
-        if (y<16) y=16; //qVGA smile fix
-    }
+    if (y<0) y=0;
 
     if (windowClass==0) throw std::exception("Can't create window class");
     b->thisHwnd=CreateWindow((LPCTSTR)windowClass, _T("SmileBox"), WS_POPUP | WS_BORDER | WS_VISIBLE ,

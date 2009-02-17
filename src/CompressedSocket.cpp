@@ -1,7 +1,7 @@
 //#include "stdafx.h"
 
 #include "CompressedSocket.h"
-#include "boostheaders.h"
+#include "boost/assert.hpp"
 #include <stdio.h>
 /**
  * CHUNK is simply the buffer size for feeding data to and pulling data 
@@ -9,9 +9,6 @@
  * especially for inflate(). If the memory is available, buffers sizes 
  * on the order of 128K or 256K bytes should be used.
  */ 
-
-#pragma comment(lib,"zlib.lib")
-
 #define CHUNK 16384
 
 CompressedSocket::CompressedSocket(ConnectionRef pack){
@@ -59,8 +56,7 @@ const std::string CompressedSocket::getStatistics(){
 }
 int CompressedSocket::read(char *buf, int len){
 
-	//if (istr.avail_out!=0){
-    if (istr.avail_in==0){
+	if (istr.avail_out!=0){
 		istr.avail_in=pack->read(zinbuf, CHUNK);
 		istr.next_in= (unsigned char *) const_cast<char *>( zinbuf );
 	}

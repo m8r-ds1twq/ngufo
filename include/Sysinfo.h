@@ -3,7 +3,6 @@
 #include <string>
 
 namespace sysinfo {
-const std::string getOsVersion();
+const std::wstring getOsVersion();
 bool screenIsVGA();
-bool screenIsRotate();
 }

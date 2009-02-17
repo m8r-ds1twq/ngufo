@@ -2,14 +2,12 @@
 
 #include <string>
 #include <list>
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
-#include "TimeFunc.h"
 #include "OwnerDrawRect.h"
 #include "JabberDataBlock.h"
-#include "VirtualListView.h"
 
-class MessageElement : public ODR, public VirtualListElement{
+class MessageElement : public ODR {
 public:
     MessageElement(){};
     MessageElement(const std::string &str);
@@ -22,18 +20,12 @@ public:
 
     virtual void render(HDC hdc, RECT &rt, bool measure) const;
 
-    virtual HMENU getContextMenu(HMENU menu);
-    virtual bool OnMenuCommand(int cmdId, HWND parent);
-
-    virtual const wchar_t * getText() const;
-
 protected:
     std::wstring wstr;
     int width;
     int height;
-    bool singleLine;
-    bool smiles;
     void init();
+    virtual const wchar_t * getText() const;
 };
 
 
@@ -53,27 +45,16 @@ public:
     typedef boost::shared_ptr<Message> ref;
 
 public:
-    Message(std::string body, std::string fromName, bool appendFrom, int type, const PackedTime &time);
+    Message(std::string body, std::string fromName, int type);
 
     JabberDataBlockRef constructStanza(const std::string &to) const;
 
     std::string body;
     std::string fromName;
-
-    std::string id;
-
-    PackedTime time;
     
     bool unread;
-    bool delivered;
 
     MsgType type;
-
-    std::string getMessageText();
-
-    virtual void draw(HDC hdc, RECT &rt) const;
-
-    static PackedTime extractXDelay(JabberDataBlockRef stanza);
 };
 
 

@@ -2,11 +2,9 @@
 
 #include <commctrl.h>
 #include <windowsx.h>
-#include "..\vs2005\ui\resourceppc.h"
 
 extern HINSTANCE			g_hInst;
 extern int tabHeight;
-extern HWND g_hWndMenuBar;		// menu bar handle
 
 //////////////////////////////////////////////////////////////////////////
 // WARNING!!! ONLY FOR WM2003 and higher
@@ -86,10 +84,7 @@ LRESULT CALLBACK TabsCtrl::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
         }
 
         break;
-	case WM_KEYDOWN:
-		if (wParam==VK_LEFT)	PostMessage(hWnd, WM_COMMAND, TabsCtrl::PREVTAB, 0);
-		if (wParam==VK_RIGHT)	PostMessage(hWnd, WM_COMMAND, TabsCtrl::NEXTTAB, 0);
-		break;
+
     case WM_LBUTTONDOWN:
         {
             int mouseX=GET_X_LPARAM(lParam);
@@ -124,7 +119,41 @@ LRESULT CALLBACK TabsCtrl::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             shrg.dwFlags = SHRG_RETURNCMD /*| SHRG_NOANIMATION*/;
 
             if (SHRecognizeGesture(&shrg) == GN_CONTEXTMENU) {
-                p->processPopupMenu(false, LOWORD(lParam), HIWORD(lParam) );
+
+                HMENU hmenu = p->getContextMenu();
+                p->menuUserCmds(hmenu);
+
+                if (hmenu==NULL) break;
+
+                POINT pt={LOWORD(lParam), HIWORD(lParam) };
+                ClientToScreen(hWnd, &pt);
+                int cmd=TrackPopupMenuEx(hmenu,
+                    /*TPM_LEFTALIGN |*/ TPM_TOPALIGN | TPM_RETURNCMD,
+                    pt.x, pt.y,
+                    hWnd,
+                    NULL);
+
+                if (cmd!=0) {
+                    MENUITEMINFO mi;
+                    mi.cbSize=sizeof(mi);
+                    mi.fMask=MIIM_DATA;
+                    GetMenuItemInfo(hmenu, cmd, FALSE, &mi);
+
+                    if (cmd>=TabsCtrl::SWITCH_TAB && cmd<TabsCtrl::USERCMD) {
+                        ODR *wt=(ODR*)((void *) mi.dwItemData);
+                        //switch to the selected tab
+                        p->switchByODR(wt);
+                    }
+
+                    if (cmd>=TabsCtrl::USERCMD) {
+                        p->menuUserActions(cmd, mi.dwItemData);
+                    }
+
+                    if (cmd==TabsCtrl::CLOSETAB) {
+                        PostMessage(hWnd, WM_COMMAND, cmd, mi.dwItemData);
+                    }
+                }
+                DestroyMenu(hmenu);
             }
             break;
         }
@@ -148,39 +177,6 @@ LRESULT CALLBACK TabsCtrl::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
                 p->tabDoLayout();
                 p->showActiveTab();
                 InvalidateRect(p->getHWnd(), NULL, true);
-			}
-            if (cmd==TabsCtrl::PREVTAB) {
-                //go to prev tab
-//				SetScrollInfo(p->tabScrollHWnd,SB_LEFT,0,0);
-				if (p->activeTab > 0) {
-					p->activeTab--;
-					p->showActiveTab(); //hide before change
-					p->tabDoLayout();
-					p->showActiveTab();
-					InvalidateRect(p->getHWnd(), NULL, true);
-				}
-
-            }         
-            if (cmd==TabsCtrl::NEXTTAB) {
-                //go to next tab
-//				SetScrollInfo(p->tabScrollHWnd,SB_RIGHT,0,0);	//не работает вероятно по причине того что надо добыть si(sroll info)
-				if ((p->activeTab+1) < (int)p->tabs.size()) {
-					p->activeTab++;	
-					p->showActiveTab(); //hide before change
-					p->tabDoLayout();
-					p->showActiveTab();
-					InvalidateRect(p->getHWnd(), NULL, true);
-				}
-
-			}            
-			if (cmd==IDS_WINDOWS) {
-                RECT rt;
-                HWND parent=GetParent(p->getHWnd());
-                GetWindowRect(parent, &rt);
-
-                RECT rb;
-                SendMessage(g_hWndMenuBar, TB_GETRECT, IDS_WINDOWS, (LPARAM)&rb);
-                p->processPopupMenu(true, rb.left, rt.bottom);
             }
             return 0;
         }    
@@ -393,6 +389,8 @@ ATOM TabsCtrl::windowClass=0;
 HMENU TabsCtrl::getContextMenu() {
 
     HMENU hmenu=CreatePopupMenu();
+    AppendMenu(hmenu, MF_STRING, TabsCtrl::CLOSETAB, TEXT("Close"));
+    AppendMenu(hmenu, MF_SEPARATOR , 0, NULL);
     int index=0;
     for (TabList::iterator i=tabs.begin(); i!=tabs.end(); i++) {
         const ODR * title=i->get()->wndChild->getODR();
@@ -410,50 +408,6 @@ HMENU TabsCtrl::getContextMenu() {
     return hmenu;
 }
 
-void TabsCtrl::processPopupMenu( bool cmdBar, int posX, int posY ) {
-
-    HMENU hmenu = getContextMenu();
-    menuUserCmds(hmenu);
-
-    if (hmenu==NULL) return;
-
-    if (!cmdBar && activeTab>0) {
-        BOOL result=InsertMenu(hmenu, 0, MF_STRING | MF_BYPOSITION, TabsCtrl::CLOSETAB, TEXT("Close"));
-        result=InsertMenu(hmenu, 1, MF_SEPARATOR | MF_BYPOSITION, 0, NULL);
-    }
-
-    HWND hWnd=getHWnd();
-
-    POINT pt={posX, posY };
-    if (!cmdBar) ClientToScreen(hWnd, &pt);
-    int cmd=TrackPopupMenuEx(hmenu,
-        (cmdBar)? (TPM_BOTTOMALIGN | TPM_RETURNCMD) : (TPM_TOPALIGN | TPM_RETURNCMD),
-        pt.x, pt.y,
-        hWnd,
-        NULL);
-
-    if (cmd!=0) {
-        MENUITEMINFO mi;
-        mi.cbSize=sizeof(mi);
-        mi.fMask=MIIM_DATA;
-        GetMenuItemInfo(hmenu, cmd, FALSE, &mi);
-
-        if (cmd>=TabsCtrl::SWITCH_TAB && cmd<TabsCtrl::USERCMD) {
-            ODR *wt=(ODR*)((void *) mi.dwItemData);
-            //switch to the selected tab
-            switchByODR(wt);
-        }
-
-        if (cmd>=TabsCtrl::USERCMD) {
-            menuUserActions(cmd, mi.dwItemData);
-        }
-
-        if (cmd==TabsCtrl::CLOSETAB) {
-            PostMessage(hWnd, WM_COMMAND, cmd, mi.dwItemData);
-        }
-    }
-    DestroyMenu(hmenu);
-}
 
 #include "ResourceContext.h"
 #include "Roster.h"
@@ -466,6 +420,11 @@ MainTabs::MainTabs(HWND parent) {
 }
 
 void MainTabs::menuUserCmds( HMENU hmenu ) {
+    if (activeTab==0) {
+        DeleteMenu(hmenu, CLOSETAB, MF_BYCOMMAND);
+        DeleteMenu(hmenu, 0, MF_BYPOSITION); // separator
+    }
+
     if (!rc->roster) return;
     Roster::ContactListRef hots=rc->roster->getHotContacts();
 

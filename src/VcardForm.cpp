@@ -3,7 +3,6 @@
 #include <htmlctrl.h>
 #include <commdlg.h>
 
-#include "wmuser.h"
 #include "VcardForm.h"
 #include "JabberStream.h"
 
@@ -46,7 +45,7 @@ void GetVcard::doRequest(ResourceContextRef rc) {
     req.setAttribute("type", "get");
     req.setAttribute("id", id);
 
-    req.addChildNS("vCard", "vcard-temp");
+    req.addChild("vCard", NULL)->setAttribute("xmlns","vcard-temp");
 
     rc->jabberStream->sendStanza(req);
 }
@@ -101,16 +100,15 @@ void VcardForm::onWmUserUpdate() {
 
     if (editForm) button(std::string("Publish"));
     //button("reload",std::string("Reload")); 
-    endForm();
 
     endHtml();
 }
 
 ProcessResult GetVcard::blockArrived(JabberDataBlockRef block, const ResourceContextRef rc){
     VcardForm::ref vfRef=vf.lock();
-    if (!vfRef) return CANCEL;
 
-    vfRef->vcardArrivedNotify(block);
+    if (vfRef)
+        vfRef->vcardArrivedNotify(block);
 
     return LAST_BLOCK_PROCESSED;
 }
@@ -144,7 +142,7 @@ VcardForm::ref VcardForm::createVcardForm( HWND parent, const std::string &jid, 
 void VcardForm::vcardArrivedNotify(JabberDataBlockRef vcard){
     this->vcard=vcard;
 
-    PostMessage(getHWnd(), WM_HTML_UPDATE, 0, (LPARAM)"");
+    PostMessage(getHWnd(), WM_USER, 0, (LPARAM)"");
 }
 
 void VcardForm::addHtmlField( const char *ns1, const char *ns2, const char *description, int flags ) {
@@ -240,7 +238,6 @@ BOOL VcardForm::savePhoto( LPCTSTR path )
         if (!result) return FALSE;
         path=filename;
     }
-
 
     HANDLE file=CreateFile(path, 
         GENERIC_WRITE, 
@@ -398,13 +395,13 @@ int VcardForm::detectMime( char *photo ) {
         photo[3]==(char)'G')
         return 2; //"image/png";
 
-    if (photo[0]==(char)'G' &&
-        photo[1]==(char)'I' &&
-        photo[2]==(char)'F')
+    if (photo[1]==(char)'G' &&
+        photo[2]==(char)'I' &&
+        photo[3]==(char)'F')
         return 3; //"image/gif";
 
-    if (photo[0]==(char)'B' &&
-        photo[1]==(char)'M')
+    if (photo[1]==(char)'B' &&
+        photo[2]==(char)'M')
         return 4; //"image/x-ms-bmp";
     return 0;
 }

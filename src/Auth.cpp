@@ -1,8 +1,8 @@
 //#include "stdafx.h"
 
-#include "JabberStream.h"
 #include "Auth.h"
 #include "JabberAccount.h"
+#include "JabberStream.h"
 #include "ResourceContext.h"
 #include "CompressedSocket.h"
 #include "CETLSSocket.h"
@@ -64,7 +64,8 @@ JabberDataBlockRef NonSASLAuth::loginStanza( bool get, bool sha1 ) {
     JabberDataBlockRef login = JabberDataBlockRef(new JabberDataBlock("iq"));
     login->setAttribute("type", (get)? "get"   : "set" );
     login->setAttribute("id",   (get)? "auth1" : "auth2" );
-    JabberDataBlockRef qry=login->addChildNS("query", "jabber:iq:auth");
+    JabberDataBlockRef qry=login->addChild("query",NULL);
+    qry->setAttribute("xmlns","jabber:iq:auth");
     
     qry->addChild("username",rc->account->getUserName().c_str());
     
@@ -140,7 +141,7 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
 
             //DIGEST-MD5 mechanism
             if (mechanisms->hasChildByValue("DIGEST-MD5")) {
-                Log::getInstance()->msg("DIGEST-MD5 authentication");
+                Log::getInstance()->msg("Init DIGEST-MD5");
 
                 auth.setAttribute("mechanism", "DIGEST-MD5");
 
@@ -157,7 +158,7 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
                     return LAST_BLOCK_PROCESSED;
                 }
 
-				Log::getInstance()->msg("PLAIN-password authentication");
+				Log::getInstance()->msg("Sending PLAIN password");
 					
 				auth.setAttribute("mechanism", "PLAIN");
 
@@ -181,7 +182,8 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
 			JabberDataBlock bindIq("iq");
 			bindIq.setAttribute("type", "set");
 			bindIq.setAttribute("id", "bind");
-			JabberDataBlockRef bind=bindIq.addChildNS("bind", "urn:ietf:params:xml:ns:xmpp-bind");
+			JabberDataBlockRef bind=bindIq.addChild("bind", NULL);
+			bind->setAttribute("xmlns", "urn:ietf:params:xml:ns:xmpp-bind");
 			bind->addChild("resource", rc->account->getResource().c_str() );
 			rc->jabberStream->sendStanza(bindIq);
 			return BLOCK_PROCESSED;
@@ -193,10 +195,10 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
         
         JabberDataBlock resp("response");
         resp.setAttribute("xmlns", "urn:ietf:params:xml:ns:xmpp-sasl");
-        size_t nonceIndex=challenge.find("nonce=");
+        int nonceIndex=challenge.find("nonce=");
         // first stream - step 2. generating DIGEST-MD5 response due to challenge
 
-        if (nonceIndex!=std::string::npos) {
+        if (nonceIndex>=0) {
             nonceIndex+=7; //length("nonce=\"");
             std::string nonce=challenge.substr(nonceIndex, challenge.find('\"', nonceIndex)-nonceIndex);
             std::string cnonce("123456789abcd");
@@ -208,7 +210,7 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
                 std::string("xmpp/")+rc->account->getServer(),
                 nonce,
                 cnonce ));
-            //Log::getInstance()->msg(base64::base64Decode(resp.getText()));
+            //System.out.println(resp.toString());
         }
         // first stream - step 3. sending second empty response due to second challenge
         //if (challenge.startsWith("rspauth")) {}
@@ -219,11 +221,11 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
     if (block->getTagName()=="proceed") {
         Log::getInstance()->msg("Starting TLS connection");
 #ifndef NOSTARTTLS
-
-        CeTLSSocket::ref tlsSocket=boost::dynamic_pointer_cast<CeTLSSocket>(rc->jabberStream->connection);
-        if (!tlsSocket) throw std::exception("unexpected non-tls-socket");
-        tlsSocket->startTls(rc->account->getServer(), rc->account->ignoreSslWarnings);
-
+        //starting tls layer socket
+        /*ConnectionRef tlssocket=ConnectionRef(new TLSSocket(rc->connection));
+        rc->connection=tlssocket;**/
+        ((CeTLSSocket *)(rc->jabberStream->connection.get()))->startTls(rc->account->ignoreSslWarnings);
+        //rc->jabberStream->parser->bindStream(tlssocket);
         rc->jabberStream->sendXmppBeginHeader();
         return LAST_BLOCK_PROCESSED;
 #endif
@@ -262,14 +264,12 @@ ProcessResult SASLAuth::blockArrived(JabberDataBlockRef block, const ResourceCon
             std::string res=resource->getText();
 
 			Log::getInstance()->msg("Resource: ", res.c_str());
-
-            rc->myJid.setJid(res);
-
 			//openung session
 			JabberDataBlock session("iq");
 			session.setAttribute("type", "set");
 			session.setAttribute("id", "sessionInit");
-			session.addChildNS("session", "urn:ietf:params:xml:ns:xmpp-session");
+			session.addChild("session", NULL)
+				->setAttribute("xmlns", "urn:ietf:params:xml:ns:xmpp-session");
 			rc->jabberStream->sendStanza(session);
 			return BLOCK_PROCESSED;
 		}

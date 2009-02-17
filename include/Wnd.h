@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
 #include <windows.h>
 #include "OwnerDrawRect.h"
@@ -14,7 +14,7 @@ public:
 
     HWND getHWnd() const{ return thisHWnd; }
 
-    virtual bool showWindow(bool show); //returns old window state
+    virtual void showWindow(bool show);
     void setParent(HWND parent);
 
     virtual const wchar_t * getWindowTitle() const;

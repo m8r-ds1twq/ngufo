@@ -3,7 +3,7 @@
 #include "HtmlView.h"
 #include "JabberDataBlock.h"
 #include "JabberDataBlockListener.h"
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 
 class VcardForm : public HtmlView {
 private:

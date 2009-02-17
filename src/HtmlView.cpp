@@ -4,8 +4,6 @@
 #include <htmlctrl.h>
 #include <windowsx.h>
 #include <aygshell.h>
-
-#include "wmuser.h"
 #include "utf8.hpp"
 #include "basetypes.h"
 
@@ -14,7 +12,6 @@
 extern HINSTANCE			g_hInst;
 extern int tabHeight;
 extern ImgListRef skin;
-extern HCURSOR cursorWait;
 
 ATOM HtmlView::RegisterWindowClass() {
     WNDCLASS wc;
@@ -159,14 +156,14 @@ LRESULT CALLBACK HtmlView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
         }
         break;
 
-    case WM_HTML_UPDATE:
+    case WM_USER:
         {
             p->onWmUserUpdate();
             break;
         }
     case WM_DESTROY:
         //TODO: Destroy all child data associated eith this window
-        //WARNING! do not place virtual member calls here - object is already destructed 
+
         return 0;
 
     default:
@@ -180,7 +177,6 @@ HtmlView::HtmlView() { /*init(); - MUST NOT be called before setting up parentHW
 void HtmlView::init() {
     BOOST_ASSERT(parentHWnd);
 
-    SetCursor(cursorWait);
     if (htmlViewInstance==0) 
         htmlViewInstance=LoadLibrary(L"htmlview.dll");
 
@@ -196,7 +192,6 @@ void HtmlView::init() {
     thisHWnd=CreateWindow((LPCTSTR)windowClass, _T("HtmlView"), WS_CHILD | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, parentHWnd, NULL, g_hInst, (LPVOID)this);
 
-    SetCursor(NULL);
 }
 
 HtmlView::HtmlView( HWND parent, const std::string & title ) {
@@ -214,17 +209,14 @@ const wchar_t * HtmlView::getWindowTitle() const{
     return title.c_str();
 }
 
-HtmlView::~HtmlView() {
-    SetCursor(cursorWait);
-    DestroyWindow(htmlHWnd);
-    SetCursor(NULL);
-}
+HtmlView::~HtmlView() {}
 
 const ODR * HtmlView::getODR() const { return wt.get(); }
 
 void HtmlView::onWmUserUpdate() {}
 
-HBITMAP HtmlView::getImage( LPCTSTR url, DWORD cookie ) {
+HBITMAP HtmlView::getImage( LPCTSTR url, DWORD cookie ) 
+{
     return NULL;
 }
 
@@ -241,15 +233,7 @@ StringMapRef HtmlView::splitHREFtext( LPCSTR ht ) {
             switch (c) {
             case '+': buf+=' '; break;
             case '=': key=buf; buf.clear(); break;
-            case '&': 
-                {
-                    std::string & val=m->operator [](key);
-                    if (val.length()) val+=(char)0x0a;
-                    val+=buf;
-                    //m->operator [](key)=buf; 
-                    buf.clear(); 
-                    break;
-                }
+            case '&': m->operator [](key)=buf; buf.clear(); break; 
             case '%': { 
                 char c1=(char)(*ht++)-'0'; if (c1>9) c1+='0'-'A'+10;
                 char c2=(char)(*ht++)-'0'; if (c2>9) c2+='0'-'A'+10;
@@ -261,10 +245,7 @@ StringMapRef HtmlView::splitHREFtext( LPCSTR ht ) {
                 buf+=c;
             }
         }
-        std::string & val=m->operator [](key);
-        if (val.length()) val+=(char)0x0a;
-        val+=buf;
-        //m->operator [](key)=buf; 
+        m->operator [](key)=buf; 
     }
     return StringMapRef(m);
 }
@@ -297,7 +278,6 @@ void HtmlView::endForm() { addText("</form>"); }
 void HtmlView::endHtml() {
     addText("</BODY></HTML>");
     SendMessage(htmlHWnd, DTM_ENDOFSOURCE, 0, (LPARAM)NULL);
-    SetCursor(NULL);
 }
 
 void HtmlView::button( const std::string &label ) {
@@ -313,52 +293,9 @@ void HtmlView::button( const char *name, const std::string &label ) {
     addText(label);
     addText("\">");
 }
-
-void HtmlView::selectList(const char *name, const std::string &label, bool multiple){
-    addText(label);
-    addText(":<BR>");
-    addText("<select name=\"");
-    addText(name);
-    addText("\" ");
-    if (multiple) addText("size=\"5\" multiple=\"multiple\"");
-    addText(">");
-}
-
-void HtmlView::endSelectList() { addText("</select><BR>"); }
-
-void HtmlView::option( const char *name, const std::string &label, bool checked ) {
-    addText("<option value=\"");
-    addText(name);
-    addText("\" ");
-    if (checked) addText("selected=\"selected\"");
-    addText(">");
-    addText(label);
-    addText("</option><BR>");
-}
-
-
-void HtmlView::checkBox( const char *name, const std::string &label, bool checked ) {
-    addText("<input type=\"checkbox\" name=\"");
-    addText(name);
-    addText("\" ");
-    if (checked) addText("checked");
-    addText(">");
-    addText(label);
-    addText("</input><BR>");
-}
-
 void HtmlView::textBox( const char *name, const std::string &label, const std::string &value ) {
     addText(label);
     addText(": <BR><input type=\"text\" name=\"");
-    addText(name);
-    addText("\" value=\"");
-    addText(value);
-    addText("\"><BR>");
-}
-
-void HtmlView::passBox( const char *name, const std::string &label, const std::string &value ) {
-    addText(label);
-    addText(": <BR><input type=\"password\" name=\"");
     addText(name);
     addText("\" value=\"");
     addText(value);

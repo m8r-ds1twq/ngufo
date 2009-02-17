@@ -4,15 +4,13 @@
 class CeTLSSocket : public Socket 
 {
 public:
-    CeTLSSocket(const long addr, const int port);
+    CeTLSSocket(const std::string & url, const int port);
     virtual ~CeTLSSocket(void);
     virtual const std::string getStatistics();
 
     bool ignoreSSLWarnings;
 public:
-    bool startTls(const std::string &url, bool ignoreSSLWarnings);
-
-    typedef boost::shared_ptr<CeTLSSocket> ref;
+    bool startTls(bool ignoreSSLWarnings);
 
 protected:
     CeTLSSocket(){};

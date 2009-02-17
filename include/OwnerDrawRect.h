@@ -1,6 +1,6 @@
 #pragma once
 
-#include "boostheaders.h"
+#include <boost/shared_ptr.hpp>
 #include <windows.h>
 #include <list>
 

@@ -1,11 +1,12 @@
 #include "Sysinfo.h"
 
 #include <windows.h>
-#include "boostheaders.h"
-#include "utf8.hpp"
+#include <sstream>
 
-const std::string sysinfo::getOsVersion() {
+const std::wstring sysinfo::getOsVersion() {
 
+    std::wstringstream os;
+    wchar_t buf[64];
 
     //SystemParametersInfo(SPI_GETPLATFORMTYPE, 128, buf, 0);  
     //os << buf << " ";
@@ -13,26 +14,13 @@ const std::string sysinfo::getOsVersion() {
     OSVERSIONINFO osv;
     GetVersionEx(&osv);
 
-    wchar_t buf[256];
-    SystemParametersInfo(SPI_GETOEMINFO, sizeof(buf)/sizeof(wchar_t), buf, 0);  
-    const std::string & platform=utf8::wchar_utf8( std::wstring(buf));
+    os << "WinCE " << osv.dwMajorVersion << "." << osv.dwMinorVersion << "." << osv.dwBuildNumber;
 
-    char *format = "%s (WCE%d.%d.%d)/%s";
-    char *name="Unknown";
+    SystemParametersInfo(SPI_GETOEMINFO, 64, buf, 0);  
+    os << "/" << buf;
 
-    if (osv.dwMajorVersion<=3) name="PocketPC 2002";
-    if (osv.dwMajorVersion==4 && osv.dwMinorVersion<21) name="Windows Mobile 2003";
-    if (osv.dwMajorVersion==4 && osv.dwMinorVersion>=21) name="Windows Mobile 2003 SE";
-    if (osv.dwMajorVersion==5 && osv.dwMinorVersion==1) name="Windows Mobile 5";
-    if (osv.dwMajorVersion==5 && osv.dwMinorVersion==2) name="Windows Mobile 6";
+    return os.str();
 
-    return boost::str(boost::format(format) 
-        % name 
-        % osv.dwMajorVersion 
-        % osv.dwMinorVersion
-        % osv.dwBuildNumber
-        % platform
-        );
 }
 
 bool sysinfo::screenIsVGA() {
@@ -40,12 +28,4 @@ bool sysinfo::screenIsVGA() {
     SystemParametersInfo(SPI_GETWORKAREA, sizeof(ws), &ws, 0);
 
     return (ws.right - ws.left > 320); // VGA will have 480 or 640 pixels width
-}
-
-bool sysinfo::screenIsRotate()
-{
-	RECT ws;
-	SystemParametersInfo(SPI_GETWORKAREA, sizeof(ws), &ws, 0);
-	
-	return (ws.right>ws.bottom); 
 }
