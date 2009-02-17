@@ -1,0 +1,372 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resourceppc.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "resdefce.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Russian resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+#ifdef _WIN32
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU MENU 
+BEGIN
+    POPUP "Jabber"
+    BEGIN
+        MENUITEM "Status",                      IDM_JABBER_STATUS
+        MENUITEM SEPARATOR
+        MENUITEM "Add a contact",               ID_JABBER_ADDACONTACT
+        MENUITEM "Join conference",             ID_JABBER_JOINCONFERENCE
+        MENUITEM "Account",                     IDM_JABBER_ACCOUNT
+        POPUP "Tools"
+        BEGIN
+            MENUITEM "Service Discovery",           ID_TOOLS_SERVICEDISCOVERY
+            MENUITEM "File transfers",              ID_TOOLS_FILETRANSFERS, GRAYED
+            MENUITEM "My vCard",                    ID_TOOLS_MYVCARD
+            MENUITEM SEPARATOR
+            MENUITEM "Stream Info",                 IDM_JABBER_STREAMINFO
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Options",                     ID_JABBER_OPTIONS, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "About",                       IDM_HELP_ABOUT
+        MENUITEM "Exit",                        IDM_EXIT
+    END
+    MENUITEM "Help",                        0
+    POPUP "Windows"
+    BEGIN
+        MENUITEM "Roster",                      IDM_WINDOWS_ROSTER
+        MENUITEM "Log",                         IDM_WINDOWS_LOG
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_UI ACCELERATORS 
+BEGIN
+    "Q",            IDM_EXIT,               VIRTKEY, CONTROL, NOINVERT
+    "A",            IDM_HELP_ABOUT,         VIRTKEY, CONTROL, NOINVERT
+    "1",            IDM_JABBER,             VIRTKEY, CONTROL, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ACCNT DIALOG  0, 0, 156, 129
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+FONT 8, "MS Shell Dlg"
+BEGIN
+    EDITTEXT        IDC_E_JID,47,7,105,12,ES_LOWERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_PASSWORD,47,22,75,12,ES_PASSWORD | ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_RESOURCE,47,37,75,12,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,24,114,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,84,114,50,14
+    CONTROL         "Compression",IDC_X_ZLIB,"Button",BS_AUTOCHECKBOX | BS_NOTIFY | WS_TABSTOP,11,52,57,10
+    CONTROL         "Encryption",IDC_X_SSL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,62,50,10
+    CONTROL         "Plain password",IDC_X_PLAIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,78,52,63,10
+    CONTROL         "SASL",IDC_X_SASL,"Button",BS_AUTOCHECKBOX | BS_NOTIFY | WS_TABSTOP,78,62,32,10
+    CONTROL         "Ignore SSL Warnings",IDC_X_SSL_WARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,72,83,10
+    EDITTEXT        IDC_E_HOSTIP,4,97,98,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_PORT,116,97,36,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Password *",IDC_STATIC,4,24,43,8
+    LTEXT           "Jabber ID *",IDC_STATIC,4,9,42,8
+    LTEXT           "Host name/IP",IDC_STATIC,4,86,48,8
+    LTEXT           "Port",IDC_STATIC,116,86,36,8
+    LTEXT           "Resource",IDC_STATIC,4,39,36,8
+END
+
+IDD_ABOUTBOX DIALOG  0, 0, 156, 129
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "About Bombus"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    LTEXT           "Bombus",IDC_STATIC_2,47,7,26,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2006",IDC_STATIC_3,47,19,66,8
+    ICON            IDI_BOMBUS,IDC_STATIC,15,7,20,20
+    LTEXT           "$VERSION$",IDC_AVERSION,86,7,46,8
+    EDITTEXT        IDC_AREV,17,41,120,59,ES_AUTOHSCROLL | ES_READONLY
+END
+
+IDD_STATUS DIALOG  0, 0, 156, 124
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "Select Status"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    COMBOBOX        IDC_C_STATUS,33,7,116,71,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_E_STATUS,7,41,142,41,ES_LOWERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_PRIORITY,33,87,29,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN_PRIORITY,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,65,87,10,14
+    DEFPUSHBUTTON   "Set",IDOK,24,103,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,84,103,50,14
+    COMBOBOX        IDC_C_PRESET,33,22,76,38,CBS_DROPDOWN | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Save",IDC_X_PRESAVE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,117,24,32,10
+    LTEXT           "Priority",IDC_STATIC,7,89,25,8
+    LTEXT           "Status",IDC_STATIC,7,7,24,8
+    LTEXT           "Preset",IDC_STATIC,7,24,24,8
+END
+
+IDD_DIRECT_PRESENCE DIALOG  0, 0, 156, 129
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "Send direct presence"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    COMBOBOX        IDC_C_STATUS,33,24,116,71,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_E_STATUS,7,58,142,24,ES_LOWERCASE | ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_PRIORITY,33,87,29,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN_PRIORITY,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,65,87,10,14
+    DEFPUSHBUTTON   "Set",IDOK,24,108,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,84,108,50,14
+    COMBOBOX        IDC_C_PRESET,33,40,76,38,CBS_DROPDOWN | CBS_SORT | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Save",IDC_X_PRESAVE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,117,41,32,10
+    LTEXT           "Priority",IDC_STATIC,7,89,25,8
+    LTEXT           "Status",IDC_STATIC,7,24,24,8
+    LTEXT           "Preset",IDC_STATIC,7,41,24,8
+    EDITTEXT        IDC_E_JID,7,7,142,14,ES_AUTOHSCROLL
+END
+
+IDD_EDIT_CONTACT DIALOG  0, 0, 156, 122
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "Edit contact"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    EDITTEXT        IDC_E_NICK,37,41,77,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Resolve",ID_VCARD_NICK,117,41,35,13
+    COMBOBOX        IDC_C_GROUP,37,58,115,57,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "Update",IDOK,24,95,50,14,WS_GROUP
+    PUSHBUTTON      "Cancel",IDCANCEL,84,95,50,14
+    EDITTEXT        IDC_E_JID,37,7,77,13,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "VCard",ID_VCARD,117,7,35,13,WS_DISABLED
+    LTEXT           "Contact",IDC_STATIC,5,9,32,8
+    LTEXT           "Nickname",IDC_STATIC,5,43,32,8
+    LTEXT           "Group",IDC_STATIC,4,60,24,8
+END
+
+IDD_ADD_CONTACT DIALOG  0, 0, 156, 122
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "Add contact"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    EDITTEXT        IDC_E_JID,37,7,77,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_E_NICK,37,41,77,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Resolve",ID_VCARD_NICK,117,41,35,13
+    COMBOBOX        IDC_C_GROUP,37,58,115,57,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Ask subscription",IDC_X_SUBSCR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,78,148,10
+    DEFPUSHBUTTON   "Add",IDOK,24,95,50,14,WS_GROUP
+    PUSHBUTTON      "Cancel",IDCANCEL,84,95,50,14
+    PUSHBUTTON      "VCard",ID_VCARD,117,7,35,13,WS_DISABLED
+    COMBOBOX        IDC_C_SERVICE,37,24,115,52,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Contact",IDC_STATIC,5,9,32,8
+    LTEXT           "Service",IDC_STATIC,4,26,33,8
+    LTEXT           "Nickname",IDC_STATIC,5,43,32,8
+    LTEXT           "Group",IDC_STATIC,4,60,24,8
+END
+
+IDD_CONFERENCE DIALOG  0, 0, 156, 129
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+EXSTYLE 0x80000000L
+CAPTION "Join Conference"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    COMBOBOX        IDC_C_BOOKMARK,13,81,84,71,CBS_DROPDOWNLIST | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_E_HISTSZ,119,55,29,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN_HIST_SZ,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,109,54,11,14
+    DEFPUSHBUTTON   "Set",IDOK,24,112,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,84,112,50,14
+    LTEXT           "History size",IDC_STATIC,72,57,40,8
+    LTEXT           "Room",IDC_STATIC,7,3,31,8
+    CONTROL         "Automatically jion",IDC_X_AUTOJOIN,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,14,95,72,10
+    PUSHBUTTON      "Save",IDC_SAVE,102,81,42,11,WS_DISABLED
+    GROUPBOX        "Bookmark",IDC_STATIC,7,71,142,38
+    PUSHBUTTON      "Delete",IDC_DELETE,102,95,42,11,WS_DISABLED
+    EDITTEXT        IDC_E_ROOM,7,13,47,12,ES_AUTOHSCROLL
+    LTEXT           "Server",IDC_STATIC,69,3,31,8
+    EDITTEXT        IDC_E_SERVER,68,13,81,12,ES_AUTOHSCROLL
+    LTEXT           "Password",IDC_STATIC,84,29,46,8
+    EDITTEXT        IDC_E_PASSWORD,83,38,66,12,ES_AUTOHSCROLL
+    LTEXT           "@",IDC_STATIC,57,16,10,8
+    COMBOBOX        IDC_C_NICK,7,39,62,71,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Nickname",IDC_STATIC,7,29,31,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ACCNT, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 152
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 122
+    END
+
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 149
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 122
+    END
+
+    IDD_STATUS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 149
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 117
+    END
+
+    IDD_DIRECT_PRESENCE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 149
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 122
+    END
+
+    IDD_EDIT_CONTACT, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 152
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+
+    IDD_ADD_CONTACT, DIALOG
+    BEGIN
+        LEFTMARGIN, 4
+        RIGHTMARGIN, 152
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
+
+    IDD_CONFERENCE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 149
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 122
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resourceppc.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""resdefce.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)\r\n"
+    "LANGUAGE 25, 1\r\n"
+    "#pragma code_page(1251)\r\n"
+    "#include ""uippc.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_BOMBUS              ICON                    "bombus.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_APP_TITLE           "Bombus"
+    IDC_UI                  "UI"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_JABBER              "Jabber"
+    IDS_WINDOWS             "Windows"
+    IDS_EXIT                "EXIT"
+    IDS_HELP                "Help"
+    IDS_SEND                "Send"
+END
+
+#endif    // Russian resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+LANGUAGE 25, 1
+#pragma code_page(1251)
+#include "uippc.rc2"  // non-Microsoft Visual C++ edited resources
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
