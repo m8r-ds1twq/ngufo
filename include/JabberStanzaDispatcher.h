@@ -1,25 +1,22 @@
 #pragma once
-#include <vector>
-#include "boostheaders.h"
+#include <list>
+#include <boost/smart_ptr.hpp>
 
 #include "JabberDataBlock.h"
 #include "JabberDataBlockListener.h"
-
-typedef std::vector<JabberDataBlockListenerRef> JabberDataBlockListenersList;
 
 class JabberStanzaDispatcher {
 public:
 	JabberStanzaDispatcher(ResourceContextRef resourceContext);
 	~JabberStanzaDispatcher();
 
-	BOOL dispatchDataBlock(JabberDataBlockRef block);
+	void dispatchDataBlock(JabberDataBlockRef block);
 
 	void addListener(JabberDataBlockListenerRef listener);
-    void removeListener(const std::string& id);
-    void removeListener(JabberDataBlockListener *ptr);
+	void removeListener(const std::string& id);
 
 private:
-	JabberDataBlockListenersList listeners;
+	std::list<JabberDataBlockListenerRef> listeners;
 	ResourceContextRef rc;
 };
 

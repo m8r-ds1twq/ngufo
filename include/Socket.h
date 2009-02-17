@@ -1,43 +1,27 @@
 #pragma once
+#include <string>
 #include <Winsock2.h>
-#include "Connection.h"
+#include <boost/shared_ptr.hpp>
 
-class Socket : public Connection 
+#include "basetypes.h"
+
+class Socket
 {
 public:
-	Socket(const long ip, const int port);
-	virtual ~Socket(void);
+	static Socket * createSocket(const std::string & url, const int port);
 
-	virtual int read(char * buf, int len);
-	virtual int write(const char * buf, int len);
-	virtual const std::string getStatistics();
-	//int write(const StringRef buf);
-	//int write(std::string &buf);
+public:
+	Socket(void);
+	~Socket(void);
 
-    virtual void close();
-
-    SOCKET getSocket(){ return sock; }
-
-    //todo: move to another namespace
-    static void networkUp();
-    static void checkNetworkUp();
-    //todo: move to another namespace
-    static void initWinsocks();
-    //todo: move to another namespace
-    static long resolveUrl(const std::string &url);
-
-protected:
-    Socket(){};
-    SOCKET sock;
-
-
-    static void throwSocketError();
-    static void throwNetworkDown(DWORD status);
-
-    long bytesSent;
-    long bytesRecvd;
+	int read(char * buf, int len);
+	int write(const char * buf, int len);
+	int write(const StringRef buf);
+	int Socket::write(std::string &buf);
 
 private:
-    static HANDLE hconn;
+	SOCKET sock;
+
 };
 
+typedef boost::shared_ptr<Socket> SocketRef;

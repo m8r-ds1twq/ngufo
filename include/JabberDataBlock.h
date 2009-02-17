@@ -2,14 +2,14 @@
 #include <string>
 #include <map>
 #include <list>
-#include "boostheaders.h"
+#include <boost/smart_ptr.hpp>
 
 #include "basetypes.h"
 
 class JabberDataBlock;
 typedef boost::shared_ptr<JabberDataBlock> JabberDataBlockRef;
-typedef std::list<JabberDataBlockRef> JabberDataBlockRefList;
-//typedef std::list<JabberDataBlockRef>::iterator JabberDataBlockIterator;
+typedef std::list<JabberDataBlockRef>::iterator JabberDataBlockIterator;
+
 
 class JabberDataBlock {
 public:
@@ -21,39 +21,27 @@ public:
 
 private:
 	std::map<std::string, std::string> attr;
-	JabberDataBlockRefList childs;
+	std::list<JabberDataBlockRef> childs;
 	std::string tagName;
 	std::string text;
 
 
 public:
 	const std::string& getTagName() const{ return tagName; }
-    void setTagName (const char *tagName) { this->tagName=tagName; }
 
 	bool hasAttribute(const std::string & byName);
-    std::string getAttribute(const std::string & byName);
+	const std::string& getAttribute(const std::string & byName);
 
 	void setAttribute(const std::string &name, const std::string &value);
 	void setAttribute(const char *name, const char * value);
 
-    std::string getText() const; 
-    //for parser purposes only;
-    void setRawText(const std::string &rawText){ if (text.empty()) text=rawText; else text+=rawText; }
-    void setText(const std::string &_text);
-	void setText(const char *_text);
+	const std::string& getText() const{ return text; }
+	void setText(const std::string &_text) { text=_text; }
+	void setText(const char *_text) { text=_text; }
 
-    JabberDataBlockRefList * getChilds() {return &childs;};
+	std::list<JabberDataBlockRef> * getChilds();
 	void addChild(JabberDataBlockRef child);
-    JabberDataBlockRef addChild(const char *_tagName, const char *_text = NULL);
-    JabberDataBlockRef addChildNS(const char *_tagName, const char *xmlns);
-
-    JabberDataBlockRef getChildByName(const char * tagName) const;
-    void removeChild(const char * tagName);
-    JabberDataBlockRef findChildNamespace(const char *tagName, const char *xmlns);
-
-    const std::string getChildText(const char * tagName) const;
-
-	bool hasChildByValue(const char * text);
+	JabberDataBlock * addChild(const char *_tagName, const char *_text);
 
 	StringRef toXML();
 };

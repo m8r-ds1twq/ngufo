@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="\libs\boost;\libs\zlib\include;\libs\openssl\include;..\..\..\include"
+				AdditionalIncludeDirectories="\libs\libxml2\include;\libs\boost;..\..\..\include"
 				PreprocessorDefinitions="BOOST_ALL_NO_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -181,11 +181,71 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\..\src\Auth.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\bombus-ng.cpp"
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\src\boost\condition.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\exceptions.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\JabberAccount.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\JabberDataBlock.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\JabberStanzaDispatcher.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\JabberStream.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\mutex.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\once.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\ResourceContext.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\Socket.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\tss_hooks.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\XMLParser.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\boost\xtime.cpp"
 				>
 			</File>
 		</Filter>
@@ -195,7 +255,55 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath="..\..\..\include\Auth.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\basetypes.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberAccount.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberDataBlock.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberDataBlockListener.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberListener.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberStanzaDispatcher.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\JabberStream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\ResourceContext.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\Socket.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\XMLEventListener.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\XMLParser.h"
 				>
 			</File>
 		</Filter>

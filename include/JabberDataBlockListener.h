@@ -1,11 +1,11 @@
 #pragma once
 #include <string>
-#include "boostheaders.h"
+#include <boost/smart_ptr.hpp>
 
 #include "JabberDataBlock.h"
 #include "ResourceContext.h"
 
-enum ProcessResult{ BLOCK_PROCESSED, BLOCK_REJECTED, LAST_BLOCK_PROCESSED, CANCEL };
+enum ProcessResult{ BLOCK_PROCESSED, BLOCK_REJECTED, LAST_BLOCK_PROCESSED };
 class JabberDataBlockListener{
 public:
 	virtual const char * getType() const{ return NULL; }

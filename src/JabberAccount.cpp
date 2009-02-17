@@ -1,67 +1,70 @@
-//#include "stdafx.h"
-
 #include "JabberAccount.h"
 
+void JabberAccount::setUserName(const std::string &userName) {
+	this->userName=userName;
+	updateJid();
+};
+void JabberAccount::setServer(const std::string &server){
+	this->server=server;
+	updateJid();
+};
+void JabberAccount::setResource(const std::string &resource){
+	this->resource=resource;
+	updateJid();
+};
+void JabberAccount::setJid(const std::string &jid){
+	this->jid=jid;
+
+	int at=jid.find('@');
+	int slash=jid.find('/');
+	userName=jid.substr(0,at);
+	server=jid.substr(at+1,slash);
+	resource=jid.substr(slash+1);
+
+	updateJid();
+};
+void JabberAccount::setBareJid(const std::string &bareJid){
+	this->bareJid=bareJid;
+
+	int at=bareJid.find('@');
+	int slash=bareJid.find('/');
+	userName=bareJid.substr(0,at);
+	server=bareJid.substr(at+1,slash);
+
+	updateJid();
+};
+
+void JabberAccount::updateJid(void){
+	bareJid=userName+'@'+server;
+	if (resource.empty()) bareJid=jid; 
+	else jid=bareJid+'/'+resource;
+};
+
 JabberAccount::JabberAccount(){
-    port=5222;
-    init();
+	userName=server=password=resource=jid=bareJid="";
+	hostNameIp="";
+	port=5222;
+
+	plainTextPassword=false;
+	useSASL=false;
+	useEncryption=false;
+	useCompression=false;
+	useProxy=false;
+	proxy="<none>";
 }
-void JabberAccount::init(){/*deprecated*/}
 
 JabberAccount::JabberAccount(const std::string &bareJid, const std::string &resource) {
-    init();
-    port=5222;
+	password="";
+	hostNameIp="";
+	port=5222;
+
+	plainTextPassword=false;
+	useSASL=false;
+	useEncryption=false;
+	useCompression=false;
+	useProxy=false;
 	setBareJid(bareJid);
 	setResource(resource);
 }
 
-JabberAccount::JabberAccount( LPCTSTR filename ) {
-    init();
-    setResource("bombus-ng");
-    Serialize s(filename, Serialize::READ);
-    serialize(s);
-}
-
 JabberAccount::~JabberAccount(){}
-
-void JabberAccount::saveAccount( LPCTSTR fileName ) {
-    Serialize s(fileName, Serialize::WRITE);
-    serialize(s);
-}
-
-void JabberAccount::serialize( Serialize &s ) 
-{
-    //////////////////////////////////////////////////////////////////////////
-    // Serialization
-    int version=3; //for write
-    s.streamInt(version, 3);
-
-    std::string sjid=getJid();
-    s.streamString(sjid);
-    setJid(sjid);
-
-    s.streamScrambledString(password); 
-
-    // host data
-    if (version>=3) s.streamBool(useSRV, true); else useSRV=true;
-
-    s.streamString(hostNameIp);
-    s.streamInt(port, 5222);
-
-    // login settings
-    s.streamBool(plainTextPassword, false);
-    s.streamBool(useSASL, true);
-    s.streamBool(useEncryption, false); 
-    s.streamBool(legacySSL, false);
-    s.streamBool(useCompression, false);
-
-    if (version>=2) s.streamBool(ignoreSslWarnings, false); else ignoreSslWarnings=false;
-
-    // proxy
-    s.streamBool(useProxy, false);
-    s.streamString(proxy, "<none>");
-
-    // network
-    s.streamBool(networkUp, true);
-}
-
