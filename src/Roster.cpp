@@ -241,7 +241,11 @@ Contact::ref Roster::getContactEntry(const std::string & from){
     }
     return contact;
 }
+
+
 //////////////////////////////////////////////////////////////////////////
+// Make View List, that will be display
+
 void Roster::makeViewList() {
 
     std::stable_sort(
@@ -272,7 +276,8 @@ void Roster::makeViewList() {
 
             // hide offline contacts without new messages.
             // TODO: hide only inactive offlines
-            if (contact->status==presence::OFFLINE && contact->nUnread==0 && !showOfflines) continue;
+			// Evtomax: не скрывать транспорты, если оффлайн "&& !(group->type==RosterGroup::TRANSPORTS)"
+			if (contact->status==presence::OFFLINE && contact->nUnread==0 && !showOfflines && !(group->type==RosterGroup::TRANSPORTS)) continue;
 
             elementsDisplayed++;
             list->push_back(contact);
