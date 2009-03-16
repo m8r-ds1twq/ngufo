@@ -13,5 +13,6 @@ xcopy /y "vs2005\ui\Pocket PC 2003 (ARMV4)\Release\Bombus.exe" dist\
 xcopy /s /y resources\*.* dist\
 xcopy /s /y gsgetfile\dll\*.* dist\
 xcopy /y copying.txt dist\
-xcopy /y news.txt dist\
-xcopy /y ..\Patchs\*.* dist\
+xcopy /y copying_rus.txt dist\
+rem xcopy /y news.txt dist\
+rem xcopy /y ..\Patchs\*.* dist\
