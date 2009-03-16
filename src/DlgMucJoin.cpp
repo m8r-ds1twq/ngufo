@@ -54,9 +54,9 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             if ( p->rc->bookmarks->isBookmarksAvailable() ) {
                 // enabling grayed items
                 EnableWindow(GetDlgItem(hDlg, IDC_C_BOOKMARK), TRUE);
-                EnableWindow(GetDlgItem(hDlg, IDC_SAVE), TRUE);
-                EnableWindow(GetDlgItem(hDlg, IDC_DELETE), TRUE);
-                EnableWindow(GetDlgItem(hDlg, IDC_X_AUTOJOIN), TRUE);
+                //EnableWindow(GetDlgItem(hDlg, IDC_SAVE), TRUE);
+                //EnableWindow(GetDlgItem(hDlg, IDC_DELETE), TRUE);
+                //EnableWindow(GetDlgItem(hDlg, IDC_X_AUTOJOIN), TRUE);
 
                 // filling up combo box
                 for (int i=0; i< (p->rc->bookmarks->getBookmarkCount()); i++) {
@@ -88,26 +88,8 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             SetDlgItemText(hDlg, IDC_E_ROOM, roomJid.getUserName());
             SetDlgItemText(hDlg, IDC_E_SERVER, roomJid.getServer());
             SetDlgItemText(hDlg, IDC_E_PASSWORD, bm->password);
-			SendDlgItemMessage(hDlg, IDC_X_AUTOJOIN, BM_SETCHECK, bm->autoJoin, 0);
+			//необходимо дописать чтобы менялась галка автовхода, а то она не обновляется
         }
-
-		if (LOWORD(wParam) == IDC_SAVE)
-		{
-            int bmi=SendDlgItemMessage(hDlg, IDC_C_BOOKMARK, CB_GETCURSEL, 0, 0);		//вычисляем номер записи закладки по порядку 
-            if (bmi==CB_ERR) return TRUE;	//если ошибка выходим
-            MucBookmarkItem::ref bm;//=p->rc->bookmarks->get(bmi);						//создаем переменную типа закладка :)
-            Jid roomJid(bm->jid);														//из поля bm->jid создаем переменную типа Jid
-			roomJid.setUserName(GetDlgItemText(hDlg, IDC_E_ROOM));
-			roomJid.setServer(GetDlgItemText(hDlg, IDC_E_SERVER));
-			GetDlgItemText(hDlg,IDC_E_PASSWORD,bm->password);
-			if (SendDlgItemMessage(hDlg, IDC_X_AUTOJOIN, BM_GETCHECK,0, 0)==BST_CHECKED)
-			{	bm->autoJoin=true;
-			} else {
-			}	bm->autoJoin=false;
-			p->rc->bookmarks->set(bmi,bm);
-			p->rc->bookmarks->save();
-			//p->rc->bookmarks
-		}
 
 		if (LOWORD(wParam) == IDOK)
 		{
@@ -128,7 +110,9 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
 
             ProcessMuc::initMuc(roomNode.getJid(), pass, p->rc);
 
-			JabberDataBlockRef joinPresence=constructPresence(
+
+
+            JabberDataBlockRef joinPresence=constructPresence(
                 roomNode.getJid().c_str(), 
                 p->rc->status, 
                 p->rc->presenceMessage, 
