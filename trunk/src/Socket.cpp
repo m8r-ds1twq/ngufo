@@ -16,8 +16,6 @@
 #include "boostheaders.h"
 #include <memory.h>
 
-#include "log.h"
-
 static int wsCount=0;
 
 
@@ -141,30 +139,13 @@ void Socket::networkUp() {
     rq.dwPriority=CONNMGR_PRIORITY_HIPRIBKGND;
     rq.dwParams=CONNMGR_PARAM_GUIDDESTNET;
 
-//<<<<<<< .mine
-//	ConnMgrMapURL(L"http://bombus-im.org", &rq.guidDestNet, NULL);
-//=======
     ConnMgrMapURL(L"socket://bombus-im.org", &rq.guidDestNet, NULL);
-//>>>>>>> .r434
+
 
     DWORD status;
-	HRESULT tmp;
-	short i=0;
-	//do {
-	//	i++;
+    if (ConnMgrEstablishConnectionSync(&rq, &hconn, 60000, &status) != S_OK) 
+        throwNetworkDown(status);
 
-	//	if (ConnMgrEstablishConnectionSync(&rq, &hconn, 60000, &status) != S_OK) 
-	//		throwNetworkDown(status);
-	// else networkUp();
-
-	//	checkNetworkUp();
-//	}
-	while ((i<3) | ((tmp = ConnMgrEstablishConnectionSync(&rq, &hconn, 60000, &status)) != S_OK));
-	{
-		//Log::msg('i=',(char *)i);
-		Log::getInstance()->msg((const char *)"i=",(const char *)i);
-		i++;
-	}
 #endif
 }
 
@@ -176,23 +157,17 @@ void Socket::checkNetworkUp() {
     switch (result) {
         case CONNMGR_STATUS_CONNECTED: return;
 
-		case CONNMGR_STATUS_WAITINGFORRESOURCE:
-			return;
-			break;
-		case CONNMGR_STATUS_WAITINGFORNETWORK:
-			return;
-			break;
-		case CONNMGR_STATUS_WAITINGFORPHONE:
-			return;
-			break;
+        case CONNMGR_STATUS_DISCONNECTED:
         case CONNMGR_STATUS_WAITINGFORPATH:
-		case CONNMGR_STATUS_NOPATHTODESTINATION:
+        case CONNMGR_STATUS_WAITINGFORRESOURCE:
+        case CONNMGR_STATUS_WAITINGFORNETWORK:
+        case CONNMGR_STATUS_WAITINGFORPHONE:
+        case CONNMGR_STATUS_NOPATHTODESTINATION:
         case CONNMGR_STATUS_CONNECTIONFAILED:
         case CONNMGR_STATUS_CONNECTIONCANCELED:
         case CONNMGR_STATUS_CONNECTIONDISABLED:
-        case CONNMGR_STATUS_DISCONNECTED:
 
-            //throwNetworkDown(result);
+            throwNetworkDown(result);
 
         default: return;
     }

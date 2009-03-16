@@ -1,6 +1,6 @@
-#include "dnsquery.h"
+#include "..\include\dnsquery.h"
 #include <Iphlpapi.h>
-#include "boostheaders.h"
+#include "..\include\boostheaders.h"
 using namespace dns;
 
 DnsSrvQuery::DnsSrvQuery() {

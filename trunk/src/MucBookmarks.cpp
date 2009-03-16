@@ -58,6 +58,7 @@ ProcessResult MucBookmarks::blockArrived( JabberDataBlockRef block, const Resour
 					}
             }
         }
+		//Сортировать?
 		if (Config::getInstance()->autoMUCBS) std::stable_sort(bookmarks.begin(), bookmarks.end(), MucBookmarkItem::compare);
     }
     Log::getInstance()->msg("Bookmarks received successfully");
