@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "dnsquery.h"
+#include "..\..\..\include\dnsquery.h"
 #include "iostream"
 
 #pragma comment(lib,"Ws2_32.lib")
