@@ -129,13 +129,15 @@ long WINAPI EditSubClassProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
     case WM_KEYDOWN:
         if (wParam==VK_CONTROL) editbox::editBoxShifts=true;
         if (wParam==VK_SHIFT)   editbox::editBoxShifts=true;
-		//if (wParam==VK_LEFT)	PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::PREVTAB, 0);
-		//if (wParam==VK_RIGHT)	PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
+		//if ((wParam==VK_LEFT) && (SendMessage (hWnd, EM_LINELENGTH,(WPARAM)0, (LPARAM)0==0))) PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::PREVTAB, 0);
+		//if ((wParam==VK_RIGHT) && (SendMessage (hWnd, EM_LINELENGTH,(WPARAM)0, (LPARAM)0)==0))	PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
+		//if (wParam==VK_LEFT) PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::PREVTAB, 0);
+		//if (wParam==VK_RIGHT) PostMessage(GetParent(GetParent(hWnd)), WM_COMMAND, TabsCtrl::NEXTTAB, 0);
 		if (wParam==VK_UP) //выводит фокус обратно в сообщения
 		{
 			//этот способ реализации подсказал skipyrich :)
 			int ndx1 = 0, ndx2 = 0;
-			SendMessage (hWnd, EM_GETSEL, (WPARAM)&ndx1, (LPARAM)&ndx2);
+			SendMessage (hWnd, EM_GETSEL, (WPARAM)&ndx1, (LPARAM)&ndx2); // узнаем где начинается и коначается выделение
 			int len = SendMessage (hWnd, EM_LINELENGTH,(WPARAM)0, (LPARAM)0);	//вычисляем длину строки 
 			if (ndx1<=len) //отправляем сообщение о необходимости выделить MessageList
 				SendMessage(GetParent(hWnd), WM_COMMAND, (WPARAM)8787, (LPARAM)0);	
@@ -302,10 +304,11 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
             }
 			//передаем управление 
 			if (wParam==8787) {
-				SetFocus(p->msgList->getHWnd());
+				//SetFocus(p->msgList->getHWnd());
 
 				//SendMessage(p->msgList->getHWnd(),WM_LBUTTONDOWN,(WPARAM)0, (LPARAM)0);
 				//SendMessage(p->msgList->getHWnd(), WM_LBUTTONDOWN, 0,(LPARAM) MAKELONG(10,10));
+				//SendMessage(p->msgList->getHWnd(), 8787, (WPARAM)0,(LPARAM)0);
 //				MessageBox(hWnd,L"TEXT",L"TITLE",MB_OK);
 			}
 			break;             
@@ -458,8 +461,9 @@ void ChatView::sendJabberMessage() {
     std::trimTail(body);
     if (body.length()==0) return;
 
-    Message::ref msg=Message::ref(new Message(body, rc->account->getNickname(), false, Message::SENT, strtime::getCurrentUtc() ));
-    bool muc=boost::dynamic_pointer_cast<MucRoom>(contact);
+	Message::ref msg=Message::ref(new Message(body, rc->account->getNickname(), false, Message::SENT, strtime::getCurrentUtc() ));
+	
+	bool muc=boost::dynamic_pointer_cast<MucRoom>(contact);
 
     if (!muc) {
         contact->messageList->push_back(msg);
@@ -493,7 +497,8 @@ void ChatView::sendJabberMessage() {
 	rc->jabberStream->sendStanza(*out);
     LastActivity::update();
 
-    SendMessage(editWnd, WM_SETTEXT, 1, (LPARAM) L"");
+	SendMessage(editWnd, WM_SETTEXT, 1, (LPARAM) L"");
+	
 }
 
 void ChatView::calcEditHeight() {

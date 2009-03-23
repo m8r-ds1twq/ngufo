@@ -176,6 +176,7 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
     case WM_LBUTTONDOWN:
         {
             SetFocus(hWnd);
+			//MessageBox(hWnd,(LPCWSTR)hWnd,L"TITLE",MB_OK);
             ODRRef focused=p->moveCursorTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             if (!(focused)) break;
             InvalidateRect(p->getHWnd(), NULL, true);
@@ -224,7 +225,6 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
             if (focused==oldCursor) p->eventOk();
             break;
         }
-
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
         {

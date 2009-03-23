@@ -44,7 +44,7 @@ DWORD WINAPI vibraThread(LPVOID param) {
 extern std::wstring appRootPath;
 
 
-void Notify::PlayNotify() {
+void Notify::PlayNotify(int x) {
     //doSmartPhoneVibra();
     
     std::wstring soundName(appRootPath);

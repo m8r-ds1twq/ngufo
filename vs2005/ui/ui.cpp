@@ -731,12 +731,11 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
 
         MucGroup::ref roomGrp;
         roomGrp=boost::dynamic_pointer_cast<MucGroup> (rc->roster->findGroup(roomNode.getBareJid()));
+		
         BOOST_ASSERT(roomGrp);
         if (!roomGrp) return BLOCK_PROCESSED;
         c=roomGrp->room;
-
         nick=roomNode.getResource();
-
     } else {
         c=rc->roster->getContactEntry(from);
         nick=c->getName();
@@ -809,6 +808,7 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
     // end of xep-0022
 
     Message::ref msg;
+    ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(c).get());
 
     if (body.length() || subj.length() ) {
         //constructing message and raising message event
@@ -816,13 +816,19 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
 
         msg=Message::ref(new Message(body, nick, mucMessage, Message::INCOMING, Message::extractXDelay(block) ));
 
-        Notify::PlayNotify();
+		// в эту функцию необходимо добавить параметр таким образом можно сделать разные звуки на разные событи€ :)
+		// также необходимо добавить определение на своЄ сообщение в конференцию, если оно своЄ то нотифить не надо
+		if (c->jid.getResource() != nick) // теперь свои сообщени€ в конфе не нот€ф€тс€ :)
+		{
+			// надо ещЄ дописать MSG_NEW если вкладка не открыта :)
+			if (mucMessage) Notify::PlayNotify(Notify::MSG_MUC_IN); 
+			else Notify::PlayNotify(Notify::MSG_IN);
+		}
     }
 
-    ChatView *cv = dynamic_cast<ChatView *>(tabs->getWindowByODR(c).get());
     bool ascroll=(cv==NULL)? false: cv->autoScroll();
 
-    if (msg) {
+	if (msg) {
         c->nUnread++;
         c->messageList->push_back(msg);
         if (!mucMessage) History::getInstance()->appendHistory(c, msg);
