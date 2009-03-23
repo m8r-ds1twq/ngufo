@@ -92,6 +92,7 @@ ProcessResult ProcessMuc::blockArrived(JabberDataBlockRef block, const ResourceC
                 case 409: message="Nickname is already in use by another occupant";
                 case 503: message="Maximum number of users has been reached in this room";
                 default: message=*(error->toXML());
+				//тут необходимо сделать вывод сообщений либо через MessageBox либо через сообщения в чат :)					
             }
     } else {
         JabberDataBlockRef item=xmuc->getChildByName("item");   
