@@ -32,6 +32,7 @@
 #define IDD_OPTIONS3                    117
 #define IDD_ACCNT3                      118
 #define IDD_OPTIONS4                    119
+#define IDD_OPTIONS5                    120
 #define IDI_BOMBUS                      130
 #define IDC_STATIC_2                    202
 #define IDC_STATIC_3                    203
@@ -89,6 +90,8 @@
 #define IDC_SAVE_CLOSED_MUC             1053
 #define IDC_CHECK3                      1054
 #define IDC_MUC_BOOK_SORT               1054
+#define IDM_ME                          1201
+#define IDM_Citata                      1202
 #define IDM_JABBER                      32775
 #define IDM_JABBER_STREAMINFO           32777
 #define IDM_WINDOWS_ROSTER              32782
@@ -109,12 +112,19 @@
 #define ID_JABBER_ACCOUNT2              32799
 #define IDM_JABBER_ACCOUNT2             32800
 #define ID_STATUS_ONLINE                32801
+#define ID_JABBER_SIGNALS               32801
 #define ID_STATUS_AWAY                  32802
+#define ID_SIGNALS_VIBRA                32802
 #define ID_STATUS_FFC                   32803
+#define ID_SIGNALS_SOUND                32803
 #define ID_STATUS_OFFLINE               32804
+#define ID_SIGNALS_SOUNDANDVIBRA        32804
 #define ID_CONTACT_SUBSCRIBE            32805
+#define ID_Menu32805                    32805
 #define ID_SUBSCRIBE_GRAND              32806
+#define ID_SIGNALS_VIBRA32806           32806
 #define ID_SUBSCRIPTION_GRANTSUBSCRIPTION 32807
+#define ID_SIGNALS_MUTE                 32807
 #define ID_SUBSCRIPTION_REVOKESUBSCRIPTION 32808
 #define ID_CONTACT_INFO                 32809
 #define IDM_STATUS_ONLINE               32810
@@ -129,21 +139,13 @@
 #define IDM_HELP_ABOUT                  40002
 #define IDC_STATIC                      -1
 
-/* UFO */
-// Пункты меню
-#define IDM_ME                          1201
-#define IDM_Citata                      1202
-// Настройки - Конференции
-#define IDD_OPTIONS5                    120
-/* UFO*/
-
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        135
-#define _APS_NEXT_COMMAND_VALUE         32801
+#define _APS_NEXT_COMMAND_VALUE         32808
 #define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           116
 #endif

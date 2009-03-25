@@ -43,6 +43,14 @@ BEGIN
             MENUITEM "Off line",                    IDM_STATUS_OFFLINE
         END
         MENUITEM SEPARATOR
+        POPUP "Signals"
+        BEGIN
+            MENUITEM "Sound and vibra",             ID_SIGNALS_SOUNDANDVIBRA
+            MENUITEM "Sound",                       ID_SIGNALS_SOUND
+            MENUITEM "Vibra",                       ID_SIGNALS_VIBRA
+            MENUITEM "Mute",                        ID_SIGNALS_MUTE
+        END
+        MENUITEM SEPARATOR
         MENUITEM "Add a contact",               ID_JABBER_ADDACONTACT
         MENUITEM "Join conference",             ID_JABBER_JOINCONFERENCE
         MENUITEM "Account",                     IDM_JABBER_ACCOUNT
