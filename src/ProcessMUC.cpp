@@ -392,7 +392,8 @@ void MucContact::changeAffiliation( ResourceContextRef rc, Affiliation newAffili
 
     JabberDataBlockRef item=JabberDataBlockRef(new JabberDataBlock("item"));
     Jid rj(realJid);
-    item->setAttribute("jid",rj.getBareJid());
+	//item->setAttribute("jid",rj.getBareJid());
+    item->setAttribute("jid",rj.getJid());
     item->setAttribute("affiliation",affiliationName[newAffiliation-OUTCAST]);
     //todo:    
     //  if (!reason.empty) item->addChild("reason", reason);
@@ -404,8 +405,10 @@ void MucContact::changeMucItem(ResourceContextRef rc, JabberDataBlockRef item) {
 
     JabberDataBlock iq("iq");
     iq.setAttribute("type","set");
-    iq.setAttribute("id","muc-a");
-    iq.setAttribute("to",jid.getBareJid());
+	std::string id=strtime::getRandom();
+	//iq.setAttribute("id","muc-a");
+	iq.setAttribute("id",id.c_str());
+	iq.setAttribute("to",jid.getBareJid());
 
     iq.addChildNS("query","http://jabber.org/protocol/muc#admin")
         ->addChild(item);

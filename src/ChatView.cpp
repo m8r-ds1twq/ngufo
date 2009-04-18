@@ -15,6 +15,7 @@
 
 #include "Smiles.h"
 #include "History.h"
+#include "Notify.h"
 
 #include "LastActivity.h"
 
@@ -495,6 +496,9 @@ void ChatView::sendJabberMessage() {
     composing=false;
     //Reset form
 	rc->jabberStream->sendStanza(*out);
+		
+	if (muc) Notify::PlayNotify(Notify::MSG_MUC_OUT); else Notify::PlayNotify(Notify::MSG_OUT);
+
     LastActivity::update();
 
 	SendMessage(editWnd, WM_SETTEXT, 1, (LPARAM) L"");

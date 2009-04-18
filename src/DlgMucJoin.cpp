@@ -54,9 +54,9 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             if ( p->rc->bookmarks->isBookmarksAvailable() ) {
                 // enabling grayed items
                 EnableWindow(GetDlgItem(hDlg, IDC_C_BOOKMARK), TRUE);
-                //EnableWindow(GetDlgItem(hDlg, IDC_SAVE), TRUE);
-                //EnableWindow(GetDlgItem(hDlg, IDC_DELETE), TRUE);
-                //EnableWindow(GetDlgItem(hDlg, IDC_X_AUTOJOIN), TRUE);
+                EnableWindow(GetDlgItem(hDlg, IDC_SAVE), TRUE);
+                EnableWindow(GetDlgItem(hDlg, IDC_DELETE), TRUE);
+                EnableWindow(GetDlgItem(hDlg, IDC_X_AUTOJOIN), TRUE);
 
                 // filling up combo box
                 for (int i=0; i< (p->rc->bookmarks->getBookmarkCount()); i++) {
@@ -86,10 +86,19 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             MucBookmarkItem::ref bm=p->rc->bookmarks->get(bmi);
             Jid roomJid(bm->jid);
             SetDlgItemText(hDlg, IDC_E_ROOM, roomJid.getUserName());
+			SetDlgItemText(hDlg, IDC_C_NICK, bm->nick);
             SetDlgItemText(hDlg, IDC_E_SERVER, roomJid.getServer());
             SetDlgItemText(hDlg, IDC_E_PASSWORD, bm->password);
+			if (bm->autoJoin==true) 
+				SendMessage (GetDlgItem(hDlg,IDC_X_AUTOJOIN), BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
+			else
+				SendMessage (GetDlgItem(hDlg,IDC_X_AUTOJOIN), BM_SETCHECK, (WPARAM)BST_UNCHECKED, 0);
+			//BM_GETCHECK
+			//SetDlgItem
+			//SetDlgItemInt 
+//				BST_CHECKED
 			//необходимо дописать чтобы менялась галка автовхода, а то она не обновляется
-        }
+		}
 
 		if (LOWORD(wParam) == IDOK)
 		{
@@ -123,25 +132,27 @@ INT_PTR CALLBACK DlgMucJoin::dialogProc(HWND hDlg, UINT message, WPARAM wParam, 
             if (p->rc->isLoggedIn())
                 p->rc->jabberStream->sendStanza(joinPresence);
 
-            /*
-            dlgAccountParam->setBareJid(GetDlgItemText(hDlg, IDC_E_JID));
-            GetDlgItemText(hDlg, IDC_E_PASSWORD, dlgAccountParam->password);
-            dlgAccountParam->setResource(GetDlgItemText(hDlg, IDC_E_RESOURCE));
-            GetDlgItemText(hDlg, IDC_E_HOSTIP, dlgAccountParam->hostNameIp);
-
-            dlgAccountParam->port=GetDlgItemInt(hDlg, IDC_E_PORT, NULL, false);
-
-            dlgAccountParam->useEncryption=IsDlgButtonChecked(hDlg, IDC_X_SSL)==BST_CHECKED;
-            dlgAccountParam->plainTextPassword=IsDlgButtonChecked(hDlg, IDC_X_PLAIN)==BST_CHECKED;
-            dlgAccountParam->useSASL=IsDlgButtonChecked(hDlg, IDC_X_SASL)==BST_CHECKED;
-            dlgAccountParam->useCompression=IsDlgButtonChecked(hDlg, IDC_X_ZLIB)==BST_CHECKED;
-
-            dlgAccountParam->saveAccount(TEXT("defAccount.bin"));
-            */
-
+			p->rc->bookmarks->save(p->rc);
 			EndDialog(hDlg, LOWORD(wParam));
             delete p;
 			return TRUE;
+		}
+		if (LOWORD(wParam) == IDC_SAVE) 
+		{
+            int bmi1=SendDlgItemMessage(hDlg, IDC_C_BOOKMARK, CB_GETCURSEL, 0, 0); //получаем порядковый номер выбранной закладки 
+            if (bmi1==CB_ERR) return TRUE;	//проверяем существует ли такая?
+			// переменные
+			MucBookmarkItem::ref bm1=p->rc->bookmarks->get(bmi1);
+			//достаем данные из текстовых полей
+			GetDlgItemText(hDlg, IDC_C_NICK, bm1->nick);
+			GetDlgItemText(hDlg, IDC_E_PASSWORD, bm1->password);
+			bm1->jid=GetDlgItemText(hDlg, IDC_E_ROOM) + "@" + GetDlgItemText(hDlg, IDC_E_SERVER);
+			if (SendMessage (GetDlgItem(hDlg,IDC_X_AUTOJOIN), BM_GETCHECK, 0, 0) == BST_CHECKED)
+				bm1->autoJoin="true";
+			else
+				bm1->autoJoin="false";
+
+			p->rc->bookmarks->set(bmi1, bm1); //записываем новые данные в закладку
 		}
 		if (LOWORD(wParam) == IDCANCEL)
 		{

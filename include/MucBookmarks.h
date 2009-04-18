@@ -37,9 +37,9 @@ public:
     MucBookmarkItem::ref addNewBookmark();
     MucBookmarkItem::ref get(int i);
 	void set(int i,MucBookmarkItem::ref bm);
-	void save();
-
-    bool isBookmarksAvailable() const {return bookmarksAvailable;} ;
+	void save( ResourceContextRef rc );
+    
+	bool isBookmarksAvailable() const {return bookmarksAvailable;} ;
 private:
     bool bookmarksAvailable;
     std::vector<MucBookmarkItem::ref> bookmarks;

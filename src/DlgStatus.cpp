@@ -95,6 +95,7 @@ INT_PTR CALLBACK DlgStatus::dialogProc(HWND hDlg, UINT message, WPARAM wParam, L
                 // Broadcast presence
                 rosterWnd->setIcon(p->rc->status);
                 p->rc->sendPresence();
+				p->rc->roster->setMUCStatus(status);
                 if (status==presence::OFFLINE) {
                     streamShutdown(p->rc);
                 } else {
