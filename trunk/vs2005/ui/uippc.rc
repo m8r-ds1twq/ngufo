@@ -185,7 +185,7 @@ BEGIN
     PUSHBUTTON      "Delete",IDC_DELETE,102,95,42,11,WS_DISABLED
     LTEXT           "History size",IDC_STATIC,72,57,40,8
     LTEXT           "Room",IDC_STATIC,7,3,31,8
-    CONTROL         "Automatically jion",IDC_X_AUTOJOIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,95,72,10
+    CHECKBOX        "Automatically jion",IDC_X_AUTOJOIN,14,95,72,10,WS_DISABLED
     GROUPBOX        "Bookmark",IDC_STATIC,7,71,142,38
     LTEXT           "Server",IDC_STATIC,69,3,31,8
     LTEXT           "Password",IDC_STATIC,84,29,46,8

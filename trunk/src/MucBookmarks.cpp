@@ -33,13 +33,13 @@ ProcessResult MucBookmarks::blockArrived( JabberDataBlockRef block, const Resour
                 if (b->name.empty()) b->name=b->url;
             }
 
-			if (tagName=="conference" & Config::getInstance()->autoMUC) {
+			if (tagName=="conference") {
                 b->jid=item->getAttribute("jid");
                 b->nick=item->getChildText("nick");
                 b->password=item->getChildText("password");
                 const std::string &autoJoin=item->getAttribute("autojoin");
                 b->autoJoin=(autoJoin=="1" || autoJoin=="true"); 
-				if (b->autoJoin) 
+				if (b->autoJoin & Config::getInstance()->autoMUC) 
 				{
 					Jid roomNode;
 					roomNode.setJid(b->jid);
@@ -84,22 +84,21 @@ MucBookmarkItem::ref MucBookmarks::get( int i ) { return bookmarks[i]; }
 
 void MucBookmarks::set(int i,MucBookmarkItem::ref bm) { 
 	bookmarks[i]=bm;
-	//getDm.
 }
 
-void MucBookmarks::save() { 
+void MucBookmarks::save( const ResourceContextRef rc ) { 
 	Log::getInstance()->msg("Starting Bookmarks saving...");
 	id=strtime::getRandom();
-	JabberDataBlock SetBm("id");
+	JabberDataBlock SetBm("iq");
     SetBm.setAttribute("type", "set");
     SetBm.setAttribute("id", id.c_str());
     SetBm.addChildNS("query","jabber:iq:private")->
           addChildNS("storage","storage:bookmarks");
-/*
+
 	for (int i=0; i<getBookmarkCount(); i++)
 	{
 		MucBookmarkItem::ref bm=bookmarks[i];
-		JabberDataBlockRef item;
+		JabberDataBlockRef item=JabberDataBlockRef(new JabberDataBlock("item"));;
 		//const std::string &tagName=item->getTagName();
 			
 			if (!bm->url.empty()) {
@@ -107,17 +106,18 @@ void MucBookmarks::save() {
 				item->setAttribute("url",bm->url);
             } else {
 				item->setTagName("conference");
-				item->setAttribute("jid",bm->jid);
-				item->setAttribute("password",bm->password);
-				//item->setAttribute("autojoin",(const std::string&)bm->autoJoin);
-				//item->addChild("nick",(const char*&)bm->nick);
+				item->setAttribute("jid", bm->jid);
+//				item->setAttribute("autojoin",(const std::string*)bm->autoJoin);
+				item->setAttribute("autojoin",bm->autoJoin?"true":"false");
+				item->addChild("nick",bm->nick.c_str());
+				item->addChild("password", bm->password.c_str());
 			}
-		SetBm.addChild(item);
-	}
-*/
-	Log::getInstance()->msg(SetBm.getText());
-	Log::getInstance()->msg("Bookmarks save successfully");
 
+			SetBm.getChildByName("query")->addChild(item);
+	}
+	
+	rc->jabberStream->sendStanza(SetBm);
+	Log::getInstance()->msg("Bookmarks save successfully");
 }
 int MucBookmarks::getBookmarkCount() const { return bookmarks.size(); }
 

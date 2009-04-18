@@ -46,9 +46,26 @@ extern std::wstring appRootPath;
 
 void Notify::PlayNotify(int x) {
     //doSmartPhoneVibra();
+   
+	std::wstring soundName(appRootPath);
+
+	switch (x)
+	{
+		case MSG_MUC_IN: 
+			soundName+=TEXT("sounds\\message_muc_in.wav");
+		break;
+		case MSG_IN:
+			soundName+=TEXT("sounds\\message_in.wav");
+		break;
+		case MSG_ON_LINE:
+			soundName+=TEXT("sounds\\on_line.wav");
+		break;
+		case MSG_MUC_OUT:
+		case MSG_OUT:
+			soundName+=TEXT("sounds\\message_send.wav");
+		break;
+	}
     
-    std::wstring soundName(appRootPath);
-    soundName+=TEXT("sounds\\message.wav");
 
     if (Config::getInstance()->sounds)
         PlaySound(soundName.c_str(), NULL, SND_ASYNC | /*SND_NOWAIT |*/SND_FILENAME);

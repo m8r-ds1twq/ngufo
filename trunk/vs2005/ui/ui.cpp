@@ -313,35 +313,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					rc->status=presence::ONLINE;
 					rosterWnd->setIcon(rc->status);
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					initJabber(rc);
 					break;
 				case IDM_STATUS_FFC:					
 					rc->status=presence::CHAT;
 					rosterWnd->setIcon(rc->status);
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					initJabber(rc);
 					break;
 				case IDM_STATUS_AWAY:					
 					rc->status=presence::AWAY;
 					rosterWnd->setIcon(rc->status);
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					initJabber(rc);
 					break;
 				case IDM_STATUS_EXTENDEDAWAY:					
 					rc->status=presence::XA;
 					rosterWnd->setIcon(rc->status);
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					initJabber(rc);
 					break;
 				case IDM_STATUS_DND:					
 					rc->status=presence::DND;
 					rosterWnd->setIcon(rc->status);
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					initJabber(rc);
 					break;
 				case IDM_STATUS_OFFLINE:
 					rc->status=presence::OFFLINE;
 					rc->sendPresence();
+					if (rc->isLoggedIn()) rc->roster->setMUCStatus(rc->status);
 					streamShutdown(rc);
 					rosterWnd->setIcon(rc->status);
 					break;
@@ -449,7 +455,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             //tabs->setParent(hWnd);
 
             rosterWnd=RosterListView::ref(new RosterListView(tabs->getHWnd(), std::string("Roster")));
-            tabs->addWindow(rosterWnd);
+			tabs->addWindow(rosterWnd);
 			SetFocus(rosterWnd->getHWnd()); //чтоб стрелки сразу после запуска работали, без этого непонятно где фокус
 
 			// не уверен что актуально тут ведь ростер мгновенно не грузится надо бы сделать после Roster Arrived 
@@ -759,7 +765,7 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
 
         MucGroup::ref roomGrp;
         roomGrp=boost::dynamic_pointer_cast<MucGroup> (rc->roster->findGroup(roomNode.getBareJid()));
-		
+
         BOOST_ASSERT(roomGrp);
         if (!roomGrp) return BLOCK_PROCESSED;
         c=roomGrp->room;
