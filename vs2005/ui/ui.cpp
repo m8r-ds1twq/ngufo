@@ -854,19 +854,24 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
 		// также необходимо добавить определение на своЄ сообщение в конференцию, если оно своЄ то нотифить не надо
 		if (c->jid.getResource() != nick) // теперь свои сообщени€ в конфе не нот€ф€тс€ :)
 		{
-			// надо ещЄ дописать MSG_NEW если вкладка не открыта :)
-			if (mucMessage) Notify::PlayNotify(Notify::MSG_MUC_IN); 
-			else Notify::PlayNotify(Notify::MSG_IN);
+			// MSG_NEW если вкладка не открыта :)
+			if (cv==NULL) 
+				Notify::PlayNotify(Notify::MSG_NEW);
+			else
+			{
+				if (mucMessage) Notify::PlayNotify(Notify::MSG_MUC_IN); 
+				else Notify::PlayNotify(Notify::MSG_IN);
+			}
 		}
     }
 
-    bool ascroll=(cv==NULL)? false: cv->autoScroll();
+    bool ascroll=(cv==NULL)? false: cv->autoScroll(); // определ€ем отрыто ли окно сообщений
 
 	if (msg) {
         c->nUnread++;
         c->messageList->push_back(msg);
         if (!mucMessage) History::getInstance()->appendHistory(c, msg);
-
+		
         if (ascroll) /*if (cv)*/ {
             cv->moveEnd();
         }
@@ -877,7 +882,7 @@ ProcessResult MessageRecv::blockArrived(JabberDataBlockRef block, const Resource
     if (rc->roster->needUpdateView) rc->roster->makeViewList();
 
     if (cv) { 
-        if (IsWindowVisible(cv->getHWnd())) cv->redraw();
+        if (IsWindowVisible(cv->getHWnd())) cv->redraw();		// если окно видимо перерисовываем 
         InvalidateRect(tabs->getHWnd(), NULL, FALSE);
     }
 

@@ -57,6 +57,9 @@ void Notify::PlayNotify(int x) {
 		case MSG_IN:
 			soundName+=TEXT("sounds\\message_in.wav");
 		break;
+		case MSG_NEW:
+			soundName+=TEXT("sounds\\message_new.wav");
+		break;
 		case MSG_ON_LINE:
 			soundName+=TEXT("sounds\\on_line.wav");
 		break;

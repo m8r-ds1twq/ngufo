@@ -62,7 +62,7 @@ void Config::serialize( Serialize &s ) {
 	s.streamBool(autoMUCBS, false);	//автоматическая сортировка закладок
 	s.streamBool(saveClMUC, true);	//хранить закрытые конференции
 	s.streamBool(autoFEdit, true);	//авто фокус в поле ввода
-
+	s.streamBool(AIScroll,false);	//интеллектуальный скрллинг выключен
 	/* UFO END */
 }
 

@@ -286,10 +286,8 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
                 ); 
 
             EndDeferWindowPos(hdwp); 
-
-            break; 
         } 
-
+        break; 
     case WM_COMMAND: 
         {
             if (wParam==IDS_SEND) {
@@ -312,8 +310,12 @@ LRESULT CALLBACK ChatView::WndProc( HWND hWnd, UINT message, WPARAM wParam, LPAR
 				//SendMessage(p->msgList->getHWnd(), 8787, (WPARAM)0,(LPARAM)0);
 //				MessageBox(hWnd,L"TEXT",L"TITLE",MB_OK);
 			}
-			break;             
-        }
+			if (wParam==8686) {
+				p->msgList->moveCursorEnd();
+			}
+			            
+		}
+		break; 
         /*case WM_CTLCOLORSTATIC:
         case WM_CTLCOLORLISTBOX:
         case WM_CTLCOLOREDIT: 
@@ -411,7 +413,10 @@ void ChatView::addMessage(const std::string & msg) {
 
 bool ChatView::showWindow( bool show ) {
     bool oldState=Wnd::showWindow(show);
-    if (oldState!=show) contact->nUnread=0;
+    if (oldState!=show) 
+	{
+		contact->nUnread=0;
+	}
 
     TBBUTTONINFO tbbi;
     tbbi.cbSize = sizeof(tbbi);
@@ -426,6 +431,8 @@ bool ChatView::showWindow( bool show ) {
     //if (show) InvalidateRect(msgList->getHWnd(), NULL, false);
 
 	if (show  & Config::getInstance()->autoFEdit) SetFocus(editWnd);
+	
+	msgList->moveCursorEnd();
 
     return oldState;
 }
@@ -441,8 +448,9 @@ void ChatView::moveEnd() {
 }
 
 bool ChatView::autoScroll() {
-	// авто скроллинг публика просит сделать настраиваемым :) - чтож сделаем! но в след сборке 
-    if (!IsWindowVisible(getHWnd())) return false;
+	// авто скроллинг настраиваем
+	//if (Config::getInstance()->AIScroll) if (!IsWindowVisible(getHWnd())) return false;
+	if (!IsWindowVisible(getHWnd())) return false;
     return (msgList->cursorAtEnd());
 }
 
