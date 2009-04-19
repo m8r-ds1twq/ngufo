@@ -90,6 +90,8 @@
 #define IDC_SAVE_CLOSED_MUC             1053
 #define IDC_CHECK3                      1054
 #define IDC_MUC_BOOK_SORT               1054
+#define IDC_CHECK1                      1055
+#define IDC_AISCR                       1055
 #define IDM_ME                          1201
 #define IDM_Citata                      1202
 #define IDM_JABBER                      32775
@@ -146,7 +148,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         32808
-#define _APS_NEXT_CONTROL_VALUE         1055
+#define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           116
 #endif
 #endif

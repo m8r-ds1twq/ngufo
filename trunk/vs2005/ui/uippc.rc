@@ -261,6 +261,7 @@ BEGIN
     CONTROL         "Show offline contacts",IDC_X_OFFLINES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,7,85,10
     CONTROL         "Sort contacts by status",IDC_X_PRESENCESORT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,28,91,10
     CONTROL         "Открытие лога при запуске",IDC_AUTO_LOG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,39,111,10
+    CONTROL         "Интелектуальная прокрутка",IDC_AISCR,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,11,50,115,10
 END
 
 IDD_OPTIONS2 DIALOG  0, 0, 156, 129

@@ -100,20 +100,20 @@ void MucBookmarks::save( const ResourceContextRef rc ) {
 		MucBookmarkItem::ref bm=bookmarks[i];
 		JabberDataBlockRef item=JabberDataBlockRef(new JabberDataBlock("item"));;
 		//const std::string &tagName=item->getTagName();
-			
-			if (!bm->url.empty()) {
-				item->setTagName("url");
-				item->setAttribute("url",bm->url);
-            } else {
-				item->setTagName("conference");
-				item->setAttribute("jid", bm->jid);
-//				item->setAttribute("autojoin",(const std::string*)bm->autoJoin);
-				item->setAttribute("autojoin",bm->autoJoin?"true":"false");
-				item->addChild("nick",bm->nick.c_str());
-				item->addChild("password", bm->password.c_str());
-			}
+		item->setAttribute("name", bm->name);			
+		if (!bm->url.empty()) {
+			item->setTagName("url");
+			item->setAttribute("url",bm->url);
+		} else {
+			item->setTagName("conference");
+			item->setAttribute("jid", bm->jid);
+//			item->setAttribute("autojoin",(const std::string*)bm->autoJoin);
+			item->setAttribute("autojoin",bm->autoJoin?"true":"false");
+			item->addChild("nick",bm->nick.c_str());
+			item->addChild("password", bm->password.c_str());
+		}
 
-			SetBm.getChildByName("query")->addChild(item);
+		SetBm.getChildByName("query")->getChildByName("storage")->addChild(item);
 	}
 	
 	rc->jabberStream->sendStanza(SetBm);

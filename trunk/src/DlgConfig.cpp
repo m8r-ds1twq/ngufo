@@ -109,6 +109,7 @@ INT_PTR CALLBACK DlgProcConfig(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
                 SetDlgCheckBox(hDlg, IDC_X_GROUPS, cfg->showGroups);
                 SetDlgCheckBox(hDlg, IDC_X_PRESENCESORT, cfg->sortByStatus);
 				SetDlgCheckBox(hDlg, IDC_AUTO_LOG, cfg->autoLOG);
+				SetDlgCheckBox(hDlg, IDC_AISCR, cfg->AIScroll);
             }
             if (npage==1) {
                 SetDlgCheckBox(hDlg, IDC_X_COMPOSING, cfg->composing);
@@ -124,10 +125,10 @@ INT_PTR CALLBACK DlgProcConfig(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
                 SetDlgCheckBox(hDlg, IDC_X_AUTOCONNECT, cfg->connectOnStartup);
             }
 			if (npage==4) {
-					SetDlgCheckBox(hDlg, IDC_X_AUTO_MUC, cfg->autoMUC);
-					SetDlgCheckBox(hDlg, IDC_AUTO_EDIT_FOCUS, cfg->autoFEdit);
-					SetDlgCheckBox(hDlg, IDC_SAVE_CLOSED_MUC, cfg->saveClMUC);
-					SetDlgCheckBox(hDlg, IDC_MUC_BOOK_SORT, cfg->autoMUCBS);
+				SetDlgCheckBox(hDlg, IDC_X_AUTO_MUC, cfg->autoMUC);
+				SetDlgCheckBox(hDlg, IDC_AUTO_EDIT_FOCUS, cfg->autoFEdit);
+				SetDlgCheckBox(hDlg, IDC_SAVE_CLOSED_MUC, cfg->saveClMUC);
+				SetDlgCheckBox(hDlg, IDC_MUC_BOOK_SORT, cfg->autoMUCBS);
 			}
             //finally
         }
@@ -145,7 +146,8 @@ INT_PTR CALLBACK DlgProcConfig(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
                     GetDlgCheckBox(hDlg, IDC_X_GROUPS, cfg->showGroups);
                     GetDlgCheckBox(hDlg, IDC_X_PRESENCESORT, cfg->sortByStatus);
 					GetDlgCheckBox(hDlg, IDC_AUTO_LOG, cfg->autoLOG);
-                }
+					GetDlgCheckBox(hDlg, IDC_AISCR, cfg->AIScroll);
+				}
                 if (npage==1) {
                     GetDlgCheckBox(hDlg, IDC_X_COMPOSING, cfg->composing);
                     GetDlgCheckBox(hDlg, IDC_X_DELIVERY, cfg->delivered);
