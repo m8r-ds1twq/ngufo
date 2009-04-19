@@ -225,12 +225,16 @@ LRESULT CALLBACK VirtualListView::WndProc( HWND hWnd, UINT message, WPARAM wPara
             if (focused==oldCursor) p->eventOk();
             break;
         }
+		
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
         {
+			//SetFocus(hWnd);
+			p->moveCursorEnd();
             InvalidateRect(p->getHWnd(), NULL, true);
             break;
         }
+		
     case WM_KEYDOWN:
         {
             int vKey=(int)wParam;
